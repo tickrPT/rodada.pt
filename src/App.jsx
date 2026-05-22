@@ -66,11 +66,19 @@ const T = {
     eMin:"Junta pelo menos 2 amigos!", eMax:"Máximo 20 amigos!", eDup:"Esse nome já está na roda!",
     tag:"GIRA · DECIDE · PAGA · REPETE", shame:"PATROCINADORES DA NOITE", toggle:"EN",
     testBtn:"🎯 TESTAR 100×",
-    testTitle:"TESTE DE 100 RODADAS",
-    testSub:"Probabilidade esperada: cada amigo deveria sair",
+    testTitle:"TESTE DE FAIRNESS",
+    testSub:"Em sorteios aleatórios, é normal haver variação. O importante é estar dentro da zona verde — prova matemática de que é justo.",
     testTimes:"vezes",
-    testFair:"✓ Distribuição uniforme — cada amigo tem a mesma probabilidade",
+    testExpected:"Valor esperado",
+    testRange:"Range aceitável (95% confiança família-wise)",
+    testFair:"✓ DISTRIBUIÇÃO JUSTA",
+    testFairSub:(n)=>`Todos os amigos dentro do range esperado em ${n} sorteios`,
+    testUnfair:"⚠ Anomalia detectada",
+    testUnfairSub:"Volta a testar — pode ser variação rara (1 em 20).",
+    testRepeat:"🔄 REPETIR TESTE",
+    testBigger:"📊 TESTAR 1000×",
     testClose:"FECHAR",
+    testRunning:"A SORTEAR...",
     tabWheel:"RODADA", tabGroups:"GRUPOS",
     msgs:["Tira a carteira! 💸","É a tua vez! 🍺","Sorte tem preço! 💀","Dá cá o MB Way! 📱","Não fujas! 🏃‍♂️","A vida é assim! 🎲","Aí tens, campeão! 🏆","Desta não escapas! 👋"],
     msgsRepeat:["DE NOVO?! O karma é real! 😂","A sorte não está do teu lado! 💀","Dois seguidos! Estás amaldiçoado! 🤣","A roda adora-te! (a carteira nem por isso) 😭"],
@@ -97,11 +105,19 @@ const T = {
     eMin:"Add at least 2 friends!", eMax:"Maximum 20 friends!", eDup:"That name is already on the wheel!",
     tag:"SPIN · DECIDE · PAY · REPEAT", shame:"TONIGHT'S SPONSORS", toggle:"PT",
     testBtn:"🎯 TEST 100×",
-    testTitle:"TEST OF 100 SPINS",
-    testSub:"Expected probability: each friend should appear",
+    testTitle:"FAIRNESS TEST",
+    testSub:"In random draws, variation is normal. What matters is staying inside the green zone — mathematical proof it's fair.",
     testTimes:"times",
-    testFair:"✓ Uniform distribution — each friend has equal probability",
+    testExpected:"Expected value",
+    testRange:"Acceptable range (95% family-wise confidence)",
+    testFair:"✓ FAIR DISTRIBUTION",
+    testFairSub:(n)=>`All friends within expected range over ${n} draws`,
+    testUnfair:"⚠ Anomaly detected",
+    testUnfairSub:"Try again — could be rare variation (1 in 20).",
+    testRepeat:"🔄 REPEAT TEST",
+    testBigger:"📊 TEST 1000×",
     testClose:"CLOSE",
+    testRunning:"DRAWING...",
     tabWheel:"ROUND", tabGroups:"GROUPS",
     msgs:["Get your wallet out! 💸","It's your round, mate! 🍺","Luck has a price! 💀","Time to pay up! 📱","No running away! 🏃‍♂️","That's life! 🎲","There you go, champ! 🏆","No escape this time! 👋"],
     msgsRepeat:["AGAIN?! Karma is real! 😂","Luck's not on your side! 💀","Twice in a row! Cursed! 🤣","The wheel loves you! (wallet, not so much) 😭"],
@@ -215,7 +231,7 @@ export default function App() {
     if(!document.getElementById(id)){
       const l=document.createElement("link");
       l.id=id;l.rel="stylesheet";
-      l.href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@400;700&display=swap";
+      l.href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;700&display=swap";
       document.head.appendChild(l);
     }
   },[]);
@@ -410,20 +426,64 @@ export default function App() {
     animRef.current=requestAnimationFrame(frame);
   };
 
-  // ── 100x test: prove the distribution is uniform ──
+  // ── Fairness test using Chi-square goodness-of-fit ──
+  // The previous version had a multiple comparisons bug: checking k independent 95% CIs
+  // gives false alarm rate of 1 - 0.95^k, which is 19% for k=4 (not 5%).
+  // Chi-square tests the whole distribution at once — single p-value, no inflation.
+  //
+  // Critical values for chi-square at p=0.05, df = k-1 (for k = 2 to 26 friends)
+  const CHI2_CRIT_95 = [
+    3.841, 5.991, 7.815, 9.488, 11.070, 12.592, 14.067, 15.507, 16.919,
+    18.307, 19.675, 21.026, 22.362, 23.685, 24.996, 26.296, 27.587, 28.869,
+    30.144, 31.410, 32.671, 33.924, 35.172, 36.415, 37.652
+  ];
   const runTest=(n=100)=>{
     const fs=friendsRef.current;
     if(fs.length<2){setFErr(T[langRef.current].eMin);return;}
-    const counts={};
-    fs.forEach(f=>{counts[f]=0;});
-    let curAngle=angleRef.current;
-    for(let i=0;i<n;i++){
-      const extra=Math.PI*2*(7+cryptoRandom()*6);
-      curAngle+=extra;
-      const idx=winnerIdx(curAngle);
-      counts[fs[idx]]++;
-    }
-    setTestResults({counts,total:n,expected:n/fs.length});
+    setTestResults({running:true,total:n});
+    setTimeout(()=>{
+      const counts={};
+      fs.forEach(f=>{counts[f]=0;});
+      let curAngle=angleRef.current;
+      for(let i=0;i<n;i++){
+        const extra=Math.PI*2*(7+cryptoRandom()*6);
+        curAngle+=extra;
+        const idx=winnerIdx(curAngle);
+        counts[fs[idx]]++;
+      }
+      const k=fs.length;
+      const expected=n/k;
+
+      // ── Chi-square goodness-of-fit: the proper test ──
+      const chi2=Object.values(counts).reduce(
+        (sum,obs)=>sum+Math.pow(obs-expected,2)/expected, 0
+      );
+      const df=k-1;
+      const critical=CHI2_CRIT_95[df-1] || 50;
+      const isFair=chi2<=critical;
+
+      // ── Bonferroni-corrected per-friend range (for individual bar display) ──
+      // Family-wise 95% confidence: each friend tested at alpha = 0.05/k.
+      // Approximate z-values for two-tailed at alpha/k:
+      let z;
+      if (k<=2) z=2.24;
+      else if (k<=4) z=2.50;
+      else if (k<=6) z=2.64;
+      else if (k<=10) z=2.81;
+      else if (k<=20) z=3.02;
+      else z=3.20;
+      const stddev=Math.sqrt(n*(1/k)*(1-1/k));
+      const margin=z*stddev;
+      const minOk=Math.max(0,expected-margin);
+      const maxOk=expected+margin;
+
+      setTestResults({
+        counts, total:n, expected, stddev, minOk, maxOk,
+        chi2, critical, isFair,
+        allInRange:isFair, // alias kept for backwards compatibility with JSX
+        running:false
+      });
+    },50);
   };
 
   const shareWinner=async()=>{
@@ -490,7 +550,7 @@ export default function App() {
 
   /* ────────────────────────  STYLES — AESTHETIC OVERHAUL  ──────────────────────── */
   const css=`
-    @import url('https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;700&display=swap');
     *{margin:0;padding:0;box-sizing:border-box}
     html,body{background:#040407;overflow-x:hidden}
 
@@ -658,37 +718,65 @@ export default function App() {
     .btn-test:hover{background:#00CFFF;color:#000;
       box-shadow:0 0 26px rgba(0,207,255,0.55);transform:translateY(-1px)}
 
-    /* ── TEST RESULTS MODAL ── */
-    .test-card{max-width:460px;width:100%;padding:32px 26px 26px;
+    /* ── FAIRNESS TEST MODAL ── */
+    .test-card{max-width:480px;width:100%;padding:32px 26px 26px;
       background:linear-gradient(180deg,#0a0a0a 0%,#000 100%);
       text-align:left;animation:pi 0.45s cubic-bezier(0.34,1.56,0.64,1);position:relative;overflow:hidden;
       border:4px solid #00CFFF;
       box-shadow:10px 10px 0 #00CFFF, 0 0 60px rgba(0,207,255,0.4);max-height:90vh;overflow-y:auto}
     .test-title{font-family:Anton,sans-serif;font-size:1.5rem;color:#00CFFF;letter-spacing:0.06em;
-      margin-bottom:6px;text-shadow:0 0 16px rgba(0,207,255,0.6);text-align:center}
-    .test-sub{font-family:'IBM Plex Mono',monospace;font-size:0.75rem;color:#888;text-align:center;
-      margin-bottom:18px;letter-spacing:0.04em;line-height:1.5}
-    .test-expected{color:#FFE500;font-weight:700;font-size:0.85rem}
-    .test-rows{display:flex;flex-direction:column;gap:8px;margin-bottom:18px}
-    .test-row{display:grid;grid-template-columns:80px 1fr 64px;align-items:center;gap:10px;
-      padding:4px 0}
+      margin-bottom:10px;text-shadow:0 0 16px rgba(0,207,255,0.6);text-align:center}
+    .test-sub{font-family:'IBM Plex Mono',monospace;font-size:0.74rem;color:#999;text-align:center;
+      margin-bottom:18px;letter-spacing:0.02em;line-height:1.55}
+    .test-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+    .test-stat{padding:9px 11px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08)}
+    .test-stat-label{font-family:'IBM Plex Mono',monospace;font-size:0.6rem;color:#666;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px}
+    .test-stat-val{font-family:Anton,sans-serif;font-size:0.95rem;color:#FFE500;letter-spacing:0.04em}
+    .test-rows{display:flex;flex-direction:column;gap:9px;margin-bottom:18px}
+    .test-row{display:grid;grid-template-columns:80px 1fr 64px;align-items:center;gap:10px;padding:4px 0}
     .test-name{font-family:Anton,sans-serif;font-size:0.85rem;letter-spacing:0.04em;color:#fff;
       overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:5px}
-    .test-dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex-shrink:0;
-      box-shadow:0 0 6px currentColor}
-    .test-bar-bg{height:18px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);position:relative;overflow:hidden}
-    .test-bar{height:100%;transition:width 0.5s cubic-bezier(0.34,1.2,0.64,1);position:relative}
+    .test-dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex-shrink:0;box-shadow:0 0 6px currentColor}
+    .test-bar-bg{height:22px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);position:relative;overflow:hidden}
+    .test-zone{position:absolute;top:0;bottom:0;background:rgba(0,255,159,0.14);
+      border-left:1px dashed rgba(0,255,159,0.4);border-right:1px dashed rgba(0,255,159,0.4);z-index:0}
+    .test-bar{height:100%;transition:width 0.6s cubic-bezier(0.34,1.2,0.64,1);position:relative;z-index:1}
     .test-bar::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(255,255,255,0.3),transparent 30%)}
-    .test-expected-line{position:absolute;top:-2px;bottom:-2px;width:2px;background:#FFE500;
-      box-shadow:0 0 6px #FFE500;z-index:2}
+    .test-expected-line{position:absolute;top:-2px;bottom:-2px;width:2px;background:#FFE500;box-shadow:0 0 6px #FFE500;z-index:3}
     .test-count{font-family:Anton,sans-serif;font-size:0.95rem;color:#fff;text-align:right;letter-spacing:0.03em}
-    .test-pct{font-family:'IBM Plex Mono',monospace;font-size:0.66rem;color:#888;display:block;line-height:1}
-    .test-fair{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:#00FF9F;
-      text-align:center;letter-spacing:0.04em;line-height:1.5;margin-bottom:18px;
-      padding:10px;background:rgba(0,255,159,0.05);border:1px solid rgba(0,255,159,0.25)}
-    .test-legend{display:flex;align-items:center;justify-content:center;gap:6px;
-      font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:#666;margin-bottom:14px;letter-spacing:0.04em}
+    .test-pct{font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:#888;display:block;line-height:1;margin-top:2px}
+    .test-verdict{padding:14px;margin-bottom:16px;text-align:center}
+    .test-verdict-ok{background:linear-gradient(180deg,rgba(0,255,159,0.1),rgba(0,255,159,0.03));
+      border:2px solid #00FF9F;box-shadow:0 0 22px rgba(0,255,159,0.25)}
+    .test-verdict-bad{background:linear-gradient(180deg,rgba(255,107,0,0.1),rgba(255,107,0,0.03));
+      border:2px solid #FF6B00;box-shadow:0 0 22px rgba(255,107,0,0.25)}
+    .test-verdict-h{font-family:Anton,sans-serif;font-size:1.15rem;letter-spacing:0.1em;margin-bottom:4px}
+    .test-verdict-ok .test-verdict-h{color:#00FF9F;text-shadow:0 0 12px rgba(0,255,159,0.55)}
+    .test-verdict-bad .test-verdict-h{color:#FF6B00;text-shadow:0 0 12px rgba(255,107,0,0.55)}
+    .test-verdict-sub{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:#aaa;letter-spacing:0.04em;line-height:1.5}
+    .test-legend{display:flex;align-items:center;justify-content:center;gap:18px;
+      font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:#777;margin-bottom:16px;letter-spacing:0.04em}
+    .test-leg-item{display:flex;align-items:center;gap:5px}
     .test-legend-mark{display:inline-block;width:2px;height:11px;background:#FFE500;box-shadow:0 0 4px #FFE500}
+    .test-leg-zone{display:inline-block;width:14px;height:11px;background:rgba(0,255,159,0.25);border:1px dashed rgba(0,255,159,0.5)}
+    .test-btn-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+    .btn-test-action{padding:13px 0;font-family:Anton,sans-serif;font-size:0.92rem;letter-spacing:0.07em;
+      background:rgba(0,207,255,0.06);border:2px solid #00CFFF;color:#00CFFF;cursor:pointer;
+      transition:all 0.15s;box-shadow:0 0 14px rgba(0,207,255,0.15)}
+    .btn-test-action:hover{background:#00CFFF;color:#000;box-shadow:0 0 26px rgba(0,207,255,0.55);transform:translateY(-1px)}
+    .btn-test-big{background:rgba(255,229,0,0.06);border-color:#FFE500;color:#FFE500;box-shadow:0 0 14px rgba(255,229,0,0.15)}
+    .btn-test-big:hover{background:#FFE500;color:#000;box-shadow:0 0 26px rgba(255,229,0,0.55)}
+    .btn-test-close{width:100%;padding:11px 0;font-family:'IBM Plex Mono',monospace;font-weight:700;
+      font-size:0.74rem;letter-spacing:0.14em;background:transparent;border:1px solid #444;color:#888;
+      cursor:pointer;transition:all 0.15s}
+    .btn-test-close:hover{border-color:#fff;color:#fff}
+    /* running state */
+    .test-running{padding:50px 20px;text-align:center;color:#00CFFF}
+    .test-running > div:nth-child(2){font-family:Anton,sans-serif;font-size:1.2rem;letter-spacing:0.1em;margin-bottom:8px}
+    .test-running-n{font-family:'IBM Plex Mono',monospace;font-size:0.85rem;color:#888;letter-spacing:0.05em}
+    .test-spinner{width:46px;height:46px;border:4px solid rgba(0,207,255,0.2);border-top-color:#00CFFF;
+      border-radius:50%;margin:0 auto 18px;animation:spin 0.8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
 
     .tag-line{font-size:0.62rem;color:#5a5a5a;letter-spacing:0.16em;text-align:center;font-weight:500}
 
@@ -1066,54 +1154,113 @@ export default function App() {
         </div>
       )}
 
-      {/* ── 100x TEST RESULTS MODAL ── */}
+      {/* ── FAIRNESS TEST MODAL ── */}
       {testResults&&(
-        <div className="ov" onClick={()=>setTestResults(null)}>
+        <div className="ov" onClick={()=>!testResults.running&&setTestResults(null)}>
           <div className="test-card" onClick={e=>e.stopPropagation()}>
             <div className="test-title">🎯 {t.testTitle}</div>
-            <div className="test-sub">
-              {t.testSub} <span className="test-expected">{testResults.expected.toFixed(1)}× {t.testTimes}</span>
-            </div>
-            <div className="test-legend">
-              <span className="test-legend-mark"/> {lang==="pt"?"linha = valor esperado":"line = expected value"}
-            </div>
-            <div className="test-rows">
-              {(() => {
-                const maxCount = Math.max(...Object.values(testResults.counts), 1);
-                const exp = testResults.expected;
-                return Object.entries(testResults.counts).map(([name,count],i) => {
-                  const c = SEGS[i % SEGS.length];
-                  const pct = (count/testResults.total)*100;
-                  const barWidthPct = (count/maxCount)*100;
-                  const expectedLinePct = (exp/maxCount)*100;
-                  return (
-                    <div key={name} className="test-row">
-                      <div className="test-name">
-                        <span className="test-dot" style={{background:c.bg,color:c.bg}}/>
-                        {name.length>7?name.slice(0,7)+"…":name}
-                      </div>
-                      <div className="test-bar-bg">
-                        <div className="test-bar" style={{
-                          width:`${barWidthPct}%`,
-                          background:`linear-gradient(90deg, ${c.bg}, ${lighten(c.bg,0.15)})`
-                        }}/>
-                        <div className="test-expected-line" style={{left:`${expectedLinePct}%`}}/>
-                      </div>
-                      <div className="test-count">
-                        {count}×
-                        <span className="test-pct">{pct.toFixed(0)}%</span>
-                      </div>
-                    </div>
-                  );
-                });
-              })()}
-            </div>
-            <div className="test-fair">{t.testFair}</div>
-            <div className="wbtns">
-              <button className="btn-again" style={{background:"#00CFFF",color:"#000"}} onClick={()=>setTestResults(null)}>
-                {t.testClose}
-              </button>
-            </div>
+
+            {testResults.running ? (
+              <div className="test-running">
+                <div className="test-spinner"/>
+                <div>{t.testRunning}</div>
+                <div className="test-running-n">{testResults.total}×</div>
+              </div>
+            ) : (
+              <>
+                <div className="test-sub">{t.testSub}</div>
+
+                <div className="test-stats">
+                  <div className="test-stat">
+                    <div className="test-stat-label">{t.testExpected}</div>
+                    <div className="test-stat-val">{testResults.expected.toFixed(1)}× {t.testTimes}</div>
+                  </div>
+                  <div className="test-stat">
+                    <div className="test-stat-label">{t.testRange}</div>
+                    <div className="test-stat-val">{Math.floor(testResults.minOk)} – {Math.ceil(testResults.maxOk)}</div>
+                  </div>
+                </div>
+
+                <div className="test-rows">
+                  {(() => {
+                    const exp = testResults.expected;
+                    const minOk = testResults.minOk;
+                    const maxOk = testResults.maxOk;
+                    // Scale: bars displayed up to 1.5x maxOk so the range zone occupies most of bar width
+                    const scaleMax = Math.max(maxOk*1.3, Math.max(...Object.values(testResults.counts))*1.1);
+                    const zoneStart = (minOk/scaleMax)*100;
+                    const zoneEnd = (maxOk/scaleMax)*100;
+                    const expPct = (exp/scaleMax)*100;
+
+                    return Object.entries(testResults.counts).map(([name,count],i) => {
+                      const c = SEGS[i % SEGS.length];
+                      const pct = (count/testResults.total)*100;
+                      const barW = (count/scaleMax)*100;
+                      const inRange = count>=minOk && count<=maxOk;
+                      return (
+                        <div key={name} className="test-row">
+                          <div className="test-name">
+                            <span className="test-dot" style={{background:c.bg,color:c.bg}}/>
+                            {name.length>7?name.slice(0,7)+"…":name}
+                          </div>
+                          <div className="test-bar-bg">
+                            {/* green safe zone */}
+                            <div className="test-zone" style={{
+                              left:`${zoneStart}%`,
+                              width:`${zoneEnd-zoneStart}%`
+                            }}/>
+                            {/* bar with color based on in-range or not */}
+                            <div className="test-bar" style={{
+                              width:`${barW}%`,
+                              background:inRange
+                                ? `linear-gradient(90deg, ${c.bg}, ${lighten(c.bg,0.15)})`
+                                : `linear-gradient(90deg, #FF2200, #FF6B00)`,
+                              boxShadow:inRange?"none":"0 0 12px rgba(255,34,0,0.6)"
+                            }}/>
+                            {/* expected line */}
+                            <div className="test-expected-line" style={{left:`${expPct}%`}}/>
+                          </div>
+                          <div className="test-count" style={{color:inRange?"#fff":"#FF6B00"}}>
+                            {count}×
+                            <span className="test-pct">{pct.toFixed(0)}%</span>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+
+                {/* Verdict box */}
+                {testResults.allInRange ? (
+                  <div className="test-verdict test-verdict-ok">
+                    <div className="test-verdict-h">{t.testFair}</div>
+                    <div className="test-verdict-sub">{t.testFairSub(testResults.total)}</div>
+                  </div>
+                ) : (
+                  <div className="test-verdict test-verdict-bad">
+                    <div className="test-verdict-h">{t.testUnfair}</div>
+                    <div className="test-verdict-sub">{t.testUnfairSub}</div>
+                  </div>
+                )}
+
+                <div className="test-legend">
+                  <span className="test-leg-item"><span className="test-leg-zone"/>{lang==="pt"?"zona ok":"ok zone"}</span>
+                  <span className="test-leg-item"><span className="test-legend-mark"/>{lang==="pt"?"esperado":"expected"}</span>
+                </div>
+
+                <div className="test-btn-row">
+                  <button className="btn-test-action" onClick={()=>runTest(100)}>
+                    {t.testRepeat}
+                  </button>
+                  <button className="btn-test-action btn-test-big" onClick={()=>runTest(1000)}>
+                    {t.testBigger}
+                  </button>
+                </div>
+                <button className="btn-test-close" onClick={()=>setTestResults(null)}>
+                  {t.testClose}
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

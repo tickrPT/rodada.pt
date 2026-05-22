@@ -215,7 +215,7 @@ export default function App() {
     if(!document.getElementById(id)){
       const l=document.createElement("link");
       l.id=id;l.rel="stylesheet";
-      l.href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;700&display=swap";
+      l.href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@400;700&display=swap";
       document.head.appendChild(l);
     }
   },[]);
@@ -490,7 +490,7 @@ export default function App() {
 
   /* ────────────────────────  STYLES — AESTHETIC OVERHAUL  ──────────────────────── */
   const css=`
-    @import url('https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@400;700&display=swap');
     *{margin:0;padding:0;box-sizing:border-box}
     html,body{background:#040407;overflow-x:hidden}
 

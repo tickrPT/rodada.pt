@@ -372,6 +372,204 @@ export default function App() {
   },[getAC]);
 
 
+  // ── WHEEL CANVAS DRAWING ──
+  // Renders the wheel with gradients, glow, segments, hub, pointer
+  const draw=useCallback((angle)=>{
+    const canvas=canvasRef.current;if(!canvas)return false;
+    const c=canvas.getContext("2d");
+    // HiDPI: render at device pixel ratio for crisp display on retina
+    const dpr = window.devicePixelRatio || 1;
+    if(canvas.width !== SZ*dpr){
+      canvas.width = SZ*dpr; canvas.height = SZ*dpr;
+      canvas.style.width = SZ+"px"; canvas.style.height = SZ+"px";
+      c.scale(dpr, dpr);
+    }
+    const fs=friendsRef.current,n=fs.length;if(!n)return false;
+    const cx=SZ/2,cy=SZ/2,arc=(2*Math.PI)/n;
+    c.clearRect(0,0,SZ,SZ);
+
+    // outer atmospheric glow
+    const gg=c.createRadialGradient(cx,cy,R-10,cx,cy,R+30);
+    gg.addColorStop(0,"rgba(255,229,0,0)");
+    gg.addColorStop(0.6,"rgba(255,229,0,0.08)");
+    gg.addColorStop(1,"rgba(255,229,0,0)");
+    c.fillStyle=gg; c.fillRect(0,0,SZ,SZ);
+
+    // outer yellow ring with shadow
+    c.save();
+    c.shadowColor="rgba(255,229,0,0.6)"; c.shadowBlur=18;
+    c.beginPath(); c.arc(cx,cy,R+10,0,2*Math.PI);
+    c.strokeStyle="#FFE500"; c.lineWidth=4; c.stroke();
+    c.restore();
+    c.beginPath(); c.arc(cx,cy,R+5,0,2*Math.PI);
+    c.strokeStyle="#0a0a0a"; c.lineWidth=3; c.stroke();
+
+    // segments with radial gradient for depth
+    for(let i=0;i<n;i++){
+      const sa=angle+i*arc, ea=sa+arc, {bg,fg}=SEGS[i%SEGS.length];
+      c.beginPath(); c.moveTo(cx,cy); c.arc(cx,cy,R,sa,ea); c.closePath();
+      const grad=c.createRadialGradient(cx,cy,15,cx,cy,R);
+      grad.addColorStop(0,lighten(bg,0.18));
+      grad.addColorStop(0.5,bg);
+      grad.addColorStop(1,darken(bg,0.15));
+      c.fillStyle=grad; c.fill();
+      c.strokeStyle="rgba(0,0,0,0.65)"; c.lineWidth=2; c.stroke();
+      // name text
+      c.save();
+      c.translate(cx,cy); c.rotate(sa+arc/2);
+      const fz=Math.max(10,Math.min(24,170/n));
+      c.font=`700 ${fz}px Anton,sans-serif`;
+      c.fillStyle=fg; c.textAlign="right";
+      c.shadowColor=fg==="#000"?"rgba(255,255,255,0.4)":"rgba(0,0,0,0.5)"; c.shadowBlur=2;
+      c.fillText((fs[i].length>9?fs[i].slice(0,9)+"…":fs[i]).toUpperCase(),R-12,fz*0.36);
+      c.restore();
+    }
+
+    // center hub (multi-layer)
+    c.save();
+    c.shadowColor="rgba(0,0,0,0.6)"; c.shadowBlur=10;
+    c.beginPath(); c.arc(cx,cy,32,0,2*Math.PI);
+    c.fillStyle="#0a0a0a"; c.fill();
+    c.restore();
+    c.beginPath(); c.arc(cx,cy,32,0,2*Math.PI);
+    c.strokeStyle="#FFE500"; c.lineWidth=4; c.stroke();
+    const hubGrad=c.createRadialGradient(cx-4,cy-4,2,cx,cy,16);
+    hubGrad.addColorStop(0,"#FFF59D");
+    hubGrad.addColorStop(0.5,"#FFE500");
+    hubGrad.addColorStop(1,"#E6CE00");
+    c.beginPath(); c.arc(cx,cy,14,0,2*Math.PI);
+    c.fillStyle=hubGrad; c.fill();
+    c.strokeStyle="#000"; c.lineWidth=2; c.stroke();
+    c.beginPath(); c.arc(cx-3,cy-3,3,0,2*Math.PI);
+    c.fillStyle="rgba(255,255,255,0.55)"; c.fill();
+
+    // POINTER at 12 o'clock
+    const tipY=cy-R, baseY=tipY-34, hw=18;
+    c.save();
+    c.shadowColor="rgba(255,34,0,0.9)"; c.shadowBlur=14;
+    c.beginPath(); c.moveTo(cx,tipY); c.lineTo(cx-hw,baseY); c.lineTo(cx+hw,baseY); c.closePath();
+    const ptrGrad=c.createLinearGradient(0,baseY,0,tipY);
+    ptrGrad.addColorStop(0,"#FF4500");
+    ptrGrad.addColorStop(0.6,"#FF2200");
+    ptrGrad.addColorStop(1,"#CC0000");
+    c.fillStyle=ptrGrad; c.fill();
+    c.restore();
+    c.beginPath(); c.moveTo(cx,tipY); c.lineTo(cx-hw,baseY); c.lineTo(cx+hw,baseY); c.closePath();
+    c.strokeStyle="#000"; c.lineWidth=2.5; c.stroke();
+    c.beginPath(); c.moveTo(cx,tipY+4); c.lineTo(cx-hw+7,baseY+8); c.lineTo(cx+hw-7,baseY+8); c.closePath();
+    c.fillStyle="rgba(255,255,255,0.28)"; c.fill();
+
+    // Tick detection — return true when segment under pointer changes
+    const norm=((angle%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
+    const local=((Math.PI*1.5-norm)%(2*Math.PI)+2*Math.PI)%(2*Math.PI);
+    const seg=Math.floor(local/arc)%n;
+    if(seg!==lastSegRef.current){lastSegRef.current=seg; return true;}
+    return false;
+  },[]);
+
+  // Redraw whenever friends list changes (and on tab change to "rodada")
+  useEffect(()=>{ if(tab==="rodada") draw(angleRef.current); },[friends,draw,tab]);
+
+  // ── WHEEL LOGIC ──
+  // Calculates which segment is at the 12 o'clock pointer for a given angle
+  const winnerIdx=(a)=>{
+    const n=friendsRef.current.length,arc=(2*Math.PI)/n;
+    const norm=((a%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
+    const local=((Math.PI*1.5-norm)%(2*Math.PI)+2*Math.PI)%(2*Math.PI);
+    return Math.floor(local/arc)%n;
+  };
+
+  // Confetti explosion
+  const boom=(fx=BEER_FX,mul=1)=>{
+    const ps=Array.from({length:Math.round(26*mul)},(_,i)=>({
+      id:Date.now()+i, e:fx[~~(Math.random()*fx.length)],
+      x:Math.random()*100, d:Math.random()*0.6,
+      dur:2.5+Math.random()*2, sz:1.3+Math.random()*1.4,
+    }));
+    setSparks(ps); setTimeout(()=>setSparks([]),5500);
+  };
+
+  // Pick contextual message based on payment count + repeat flag
+  const pickMsg=(count,isRepeat,l)=>{
+    const tr=T[l];
+    if(count>=3){const p=tr.msgsMulti; return p[~~(Math.random()*p.length)];}
+    if(isRepeat) return tr.msgsRepeat[~~(Math.random()*tr.msgsRepeat.length)];
+    return tr.msgs[~~(Math.random()*tr.msgs.length)];
+  };
+
+  // Spin the wheel — animated with easing
+  const spin=()=>{
+    if(spinning)return;
+    if(friendsRef.current.length<2){setFErr(T[langRef.current].eMin);return;}
+    setFErr("");setWinner(null);lastSegRef.current=-1;
+    const extra=Math.PI*2*(7+cryptoRandom()*6),dur=4200+Math.random()*2200;
+    const t0=performance.now(),sa=angleRef.current,ea=sa+extra;
+    let lt=0;setSpinning(true);
+    const frame=(now)=>{
+      const p=Math.min((now-t0)/dur,1);
+      const cur=sa+(ea-sa)*(1-Math.pow(1-p,4));
+      angleRef.current=cur;
+      if(draw(cur)&&now-lt>22){lt=now;playTick();}
+      if(p<1){animRef.current=requestAnimationFrame(frame);}
+      else{
+        const l=langRef.current, idx=winnerIdx(ea), fs=friendsRef.current, name=fs[idx];
+        const prev=payRef.current[name]||0, cnt=prev+1, repeat=lastWRef.current===name;
+        setPayCount(pc=>({...pc,[name]:cnt})); setLastWin(name);
+        setSpinning(false); playFanfare(); boom(BEER_FX);
+        setWinner({name,msg:pickMsg(cnt,repeat,l),count:cnt,isRepeat:repeat,...SEGS[idx%SEGS.length]});
+      }
+    };
+    animRef.current=requestAnimationFrame(frame);
+  };
+
+  // ── FAIRNESS TEST: Chi-square goodness-of-fit ──
+  const CHI2_CRIT_95 = [
+    3.841, 5.991, 7.815, 9.488, 11.070, 12.592, 14.067, 15.507, 16.919,
+    18.307, 19.675, 21.026, 22.362, 23.685, 24.996, 26.296, 27.587, 28.869,
+    30.144, 31.410, 32.671, 33.924, 35.172, 36.415, 37.652
+  ];
+  const runTest=(n=100)=>{
+    const fs=friendsRef.current;
+    if(fs.length<2){setFErr(T[langRef.current].eMin);return;}
+    setTestResults({running:true,total:n});
+    setTimeout(()=>{
+      const counts={};
+      fs.forEach(f=>{counts[f]=0;});
+      let curAngle=angleRef.current;
+      for(let i=0;i<n;i++){
+        const extra=Math.PI*2*(7+cryptoRandom()*6);
+        curAngle+=extra;
+        const idx=winnerIdx(curAngle);
+        counts[fs[idx]]++;
+      }
+      const k=fs.length;
+      const expected=n/k;
+      // Chi-square goodness-of-fit — single test, no multiple-comparisons inflation
+      const chi2=Object.values(counts).reduce(
+        (sum,obs)=>sum+Math.pow(obs-expected,2)/expected, 0
+      );
+      const df=k-1;
+      const critical=CHI2_CRIT_95[df-1] || 50;
+      const isFair=chi2<=critical;
+      // Bonferroni-corrected per-friend range for the bars
+      let z;
+      if (k<=2) z=2.24;
+      else if (k<=4) z=2.50;
+      else if (k<=6) z=2.64;
+      else if (k<=10) z=2.81;
+      else if (k<=20) z=3.02;
+      else z=3.20;
+      const stddev=Math.sqrt(n*(1/k)*(1-1/k));
+      const margin=z*stddev;
+      const minOk=Math.max(0,expected-margin);
+      const maxOk=expected+margin;
+      setTestResults({
+        counts, total:n, expected, stddev, minOk, maxOk,
+        chi2, critical, isFair, allInRange:isFair, running:false
+      });
+    },50);
+  };
+
   const shareWinner=async()=>{
     if(!winner)return;
     const text=T[lang].shareMsg(winner.name);

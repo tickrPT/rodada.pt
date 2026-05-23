@@ -96,6 +96,20 @@ const T = {
     pCount:(n)=>`${n} participante${n!==1?"s":""}`,
     gInfo:(ng,ps)=>`${ng} grupo${ng!==1?"s":""} · ~${ps} por grupo`,
     footer:"Feito com 🍺 em Portugal",
+    // ── Card mode ──
+    modeWheel:"🍺 Roleta",
+    modeCards:"💳 Cartões",
+    cardsTitle:"QUEM PAGA O JANTAR?",
+    cardsCta:"💳 ELIMINAR CARTÕES",
+    cardsEliminating:"A ELIMINAR...",
+    cardsEliminated:"ELIMINADO",
+    cardsReady:"Pronto para o sorteio dramático",
+    cardsPays:"PAGA O JANTAR!",
+    cardsCardholder:"CARTÃO RODADA",
+    cardsExpires:"VALID THRU",
+    cardsExpYear:"∞/∞",
+    cardsRestart:"NOVO SORTEIO",
+    cardsShareResult:(n)=>`💳 ${n} paga o jantar!\n\nSorteado em rodada.pt`,
   },
   en:{
     sub:"Who's buying the round?", ph:"Friend's name...", add:"ADD",
@@ -135,6 +149,20 @@ const T = {
     pCount:(n)=>`${n} participant${n!==1?"s":""}`,
     gInfo:(ng,ps)=>`${ng} group${ng!==1?"s":""} · ~${ps} each`,
     footer:"Made with 🍺 in Portugal",
+    // ── Card mode ──
+    modeWheel:"🍺 Wheel",
+    modeCards:"💳 Cards",
+    cardsTitle:"WHO PAYS THE DINNER?",
+    cardsCta:"💳 ELIMINATE CARDS",
+    cardsEliminating:"ELIMINATING...",
+    cardsEliminated:"ELIMINATED",
+    cardsReady:"Ready for the dramatic draw",
+    cardsPays:"PAYS THE DINNER!",
+    cardsCardholder:"RODADA CARD",
+    cardsExpires:"VALID THRU",
+    cardsExpYear:"∞/∞",
+    cardsRestart:"NEW DRAW",
+    cardsShareResult:(n)=>`💳 ${n} is paying for dinner!\n\nDrawn at rodada.pt`,
   },
 };
 
@@ -198,6 +226,12 @@ export default function App() {
   const [payCount,setPayCount]= useState({});
   const [lastWin,setLastWin] = useState(null);
   const [testResults,setTestResults] = useState(null);
+  // ── Card mode state ──
+  const [mode,setMode]                = useState("wheel"); // "wheel" | "cards"
+  const [cardPhase,setCardPhase]      = useState("idle");  // "idle"|"eliminating"|"done"
+  const [eliminated,setEliminated]    = useState([]);      // friend names eliminated, in order
+  const [cardWinner,setCardWinner]    = useState(null);    // {name, color} or null
+  // ── Card mode (Quem paga o jantar) ──
   const [players,setPlayers] = useState([...GROUP_DEF]);
   const [pInput,setPInput]   = useState("");
   const [theme,setTheme]     = useState("sports");
@@ -216,6 +250,11 @@ export default function App() {
   useEffect(()=>{ langRef.current=lang; },[lang]);
   useEffect(()=>{ payRef.current=payCount; },[payCount]);
   useEffect(()=>{ lastWRef.current=lastWin; },[lastWin]);
+
+  // Reset card mode whenever friend list changes
+  useEffect(()=>{
+    setEliminated([]); setCardWinner(null); setCardPhase("idle"); setAutoMode(false);
+  },[friends.length]);
 
   useEffect(()=>{
     if(players.length < numGrps*2 && numGrps > 2){
@@ -267,224 +306,71 @@ export default function App() {
   const playShuffle=useCallback(()=>{const c=getAC();if(!c)return;try{for(let i=0;i<12;i++){const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=200+Math.random()*1000;const t0=c.currentTime+i*0.09;g.gain.setValueAtTime(0.05,t0);g.gain.exponentialRampToValueAtTime(0.001,t0+0.06);o.start(t0);o.stop(t0+0.06);}}catch(e){}},[getAC]);
   const playReveal=useCallback((s)=>{if(s==="whistle")playWhistle();else playFanfare();},[playWhistle,playFanfare]);
 
-  /* ── canvas — PREMIUM render with gradients and glow ── */
-  const draw=useCallback((angle)=>{
-    const canvas=canvasRef.current;if(!canvas)return false;
-    const c=canvas.getContext("2d");
-
-    // HiDPI / retina: render at device pixel ratio for crisp display
-    const dpr = window.devicePixelRatio || 1;
-    if(canvas.width !== SZ*dpr){
-      canvas.width = SZ*dpr; canvas.height = SZ*dpr;
-      canvas.style.width = SZ+"px"; canvas.style.height = SZ+"px";
-      c.scale(dpr, dpr);
-    }
-
-    const fs=friendsRef.current,n=fs.length;if(!n)return false;
-    const cx=SZ/2,cy=SZ/2,arc=(2*Math.PI)/n;
-    c.clearRect(0,0,SZ,SZ);
-
-    // outer atmospheric glow (subtle)
-    const gg=c.createRadialGradient(cx,cy,R-10,cx,cy,R+30);
-    gg.addColorStop(0,"rgba(255,229,0,0)");
-    gg.addColorStop(0.6,"rgba(255,229,0,0.08)");
-    gg.addColorStop(1,"rgba(255,229,0,0)");
-    c.fillStyle=gg;
-    c.fillRect(0,0,SZ,SZ);
-
-    // outer black ring with shadow
-    c.save();
-    c.shadowColor="rgba(255,229,0,0.6)";
-    c.shadowBlur=18;
-    c.beginPath();c.arc(cx,cy,R+10,0,2*Math.PI);
-    c.strokeStyle="#FFE500";c.lineWidth=4;c.stroke();
-    c.restore();
-
-    // inner dark ring
-    c.beginPath();c.arc(cx,cy,R+5,0,2*Math.PI);
-    c.strokeStyle="#0a0a0a";c.lineWidth=3;c.stroke();
-
-    // segments with radial gradient for depth
-    for(let i=0;i<n;i++){
-      const sa=angle+i*arc,ea=sa+arc,{bg,fg}=SEGS[i%SEGS.length];
-      c.beginPath();c.moveTo(cx,cy);c.arc(cx,cy,R,sa,ea);c.closePath();
-
-      // radial gradient: lighter near center, original at edge
-      const grad=c.createRadialGradient(cx,cy,15,cx,cy,R);
-      grad.addColorStop(0,lighten(bg,0.18));
-      grad.addColorStop(0.5,bg);
-      grad.addColorStop(1,darken(bg,0.15));
-      c.fillStyle=grad;c.fill();
-
-      // segment divider
-      c.strokeStyle="rgba(0,0,0,0.65)";c.lineWidth=2;c.stroke();
-
-      // name text
-      c.save();c.translate(cx,cy);c.rotate(sa+arc/2);
-      const fz=Math.max(10,Math.min(24,170/n));
-      c.font=`700 ${fz}px Anton,sans-serif`;
-      c.fillStyle=fg;c.textAlign="right";
-
-      // text shadow for legibility
-      c.shadowColor=fg==="#000"?"rgba(255,255,255,0.4)":"rgba(0,0,0,0.5)";
-      c.shadowBlur=2;
-      c.fillText((fs[i].length>9?fs[i].slice(0,9)+"…":fs[i]).toUpperCase(),R-12,fz*0.36);
-      c.restore();
-    }
-
-    // center hub — multi-layered
-    c.save();
-    c.shadowColor="rgba(0,0,0,0.6)";c.shadowBlur=10;
-    c.beginPath();c.arc(cx,cy,32,0,2*Math.PI);c.fillStyle="#0a0a0a";c.fill();
-    c.restore();
-    c.beginPath();c.arc(cx,cy,32,0,2*Math.PI);
-    c.strokeStyle="#FFE500";c.lineWidth=4;c.stroke();
-
-    // inner hub gradient
-    const hubGrad=c.createRadialGradient(cx-4,cy-4,2,cx,cy,16);
-    hubGrad.addColorStop(0,"#FFF59D");
-    hubGrad.addColorStop(0.5,"#FFE500");
-    hubGrad.addColorStop(1,"#E6CE00");
-    c.beginPath();c.arc(cx,cy,14,0,2*Math.PI);
-    c.fillStyle=hubGrad;c.fill();
-    c.strokeStyle="#000";c.lineWidth=2;c.stroke();
-
-    // tiny highlight on hub for 3D feel
-    c.beginPath();c.arc(cx-3,cy-3,3,0,2*Math.PI);
-    c.fillStyle="rgba(255,255,255,0.55)";c.fill();
-
-    // POINTER with gradient and glow
-    const tipY=cy-R, baseY=tipY-34, hw=18;
-    c.save();
-    c.shadowColor="rgba(255,34,0,0.9)";c.shadowBlur=14;
-    c.beginPath();c.moveTo(cx,tipY);c.lineTo(cx-hw,baseY);c.lineTo(cx+hw,baseY);c.closePath();
-    const ptrGrad=c.createLinearGradient(0,baseY,0,tipY);
-    ptrGrad.addColorStop(0,"#FF4500");
-    ptrGrad.addColorStop(0.6,"#FF2200");
-    ptrGrad.addColorStop(1,"#CC0000");
-    c.fillStyle=ptrGrad;c.fill();
-    c.restore();
-
-    c.beginPath();c.moveTo(cx,tipY);c.lineTo(cx-hw,baseY);c.lineTo(cx+hw,baseY);c.closePath();
-    c.strokeStyle="#000";c.lineWidth=2.5;c.stroke();
-
-    // inner highlight strip on pointer
-    c.beginPath();c.moveTo(cx,tipY+4);c.lineTo(cx-hw+7,baseY+8);c.lineTo(cx+hw-7,baseY+8);c.closePath();
-    c.fillStyle="rgba(255,255,255,0.28)";c.fill();
-
-    // tick detection
-    const norm=((angle%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
-    const local=((Math.PI*1.5-norm)%(2*Math.PI)+2*Math.PI)%(2*Math.PI);
-    const seg=Math.floor(local/arc)%n;
-    if(seg!==lastSegRef.current){lastSegRef.current=seg;return true;}
-    return false;
-  },[]);
-
-  useEffect(()=>{ if(tab==="rodada") draw(angleRef.current); },[friends,draw,tab]);
-
-  const winnerIdx=(a)=>{
-    const n=friendsRef.current.length,arc=(2*Math.PI)/n;
-    const norm=((a%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
-    const local=((Math.PI*1.5-norm)%(2*Math.PI)+2*Math.PI)%(2*Math.PI);
-    return Math.floor(local/arc)%n;
-  };
-
-  const boom=(fx=BEER_FX,mul=1)=>{
-    const ps=Array.from({length:Math.round(28*mul)},(_,i)=>({id:Date.now()+i,e:fx[~~(Math.random()*fx.length)],x:Math.random()*100,d:Math.random()*0.6,dur:2.5+Math.random()*2,sz:1.3+Math.random()*1.4}));
-    setSparks(ps);setTimeout(()=>setSparks([]),5500);
-  };
-
-  const pickMsg=(count,isRepeat,l)=>{
-    const tr=T[l];
-    if(count>=3){const p=tr.msgsMulti;return p[~~(Math.random()*p.length)];}
-    if(isRepeat)return tr.msgsRepeat[~~(Math.random()*tr.msgsRepeat.length)];
-    return tr.msgs[~~(Math.random()*tr.msgs.length)];
-  };
-
-  const spin=()=>{
-    if(spinning)return;
-    if(friendsRef.current.length<2){setFErr(T[langRef.current].eMin);return;}
-    setFErr("");setWinner(null);lastSegRef.current=-1;
-    // Uniform random rotation: extra mod 2π is uniform over [0, 2π)
-    const extra=Math.PI*2*(7+cryptoRandom()*6),dur=4200+Math.random()*2200;
-    const t0=performance.now(),sa=angleRef.current,ea=sa+extra;
-    let lt=0;setSpinning(true);
-    const frame=(now)=>{
-      const p=Math.min((now-t0)/dur,1);
-      const cur=sa+(ea-sa)*(1-Math.pow(1-p,4));
-      angleRef.current=cur;
-      if(draw(cur)&&now-lt>22){lt=now;playTick();}
-      if(p<1){animRef.current=requestAnimationFrame(frame);}
-      else{
-        const l=langRef.current,idx=winnerIdx(ea),fs=friendsRef.current,name=fs[idx];
-        const prev=payRef.current[name]||0,cnt=prev+1,repeat=lastWRef.current===name;
-        setPayCount(pc=>({...pc,[name]:cnt}));setLastWin(name);
-        setSpinning(false);playFanfare();boom(BEER_FX);
-        setWinner({name,msg:pickMsg(cnt,repeat,l),count:cnt,isRepeat:repeat,...SEGS[idx%SEGS.length]});
-      }
-    };
-    animRef.current=requestAnimationFrame(frame);
-  };
-
-  // ── Fairness test using Chi-square goodness-of-fit ──
-  // The previous version had a multiple comparisons bug: checking k independent 95% CIs
-  // gives false alarm rate of 1 - 0.95^k, which is 19% for k=4 (not 5%).
-  // Chi-square tests the whole distribution at once — single p-value, no inflation.
-  //
-  // Critical values for chi-square at p=0.05, df = k-1 (for k = 2 to 26 friends)
-  const CHI2_CRIT_95 = [
-    3.841, 5.991, 7.815, 9.488, 11.070, 12.592, 14.067, 15.507, 16.919,
-    18.307, 19.675, 21.026, 22.362, 23.685, 24.996, 26.296, 27.587, 28.869,
-    30.144, 31.410, 32.671, 33.924, 35.172, 36.415, 37.652
-  ];
-  const runTest=(n=100)=>{
-    const fs=friendsRef.current;
-    if(fs.length<2){setFErr(T[langRef.current].eMin);return;}
-    setTestResults({running:true,total:n});
-    setTimeout(()=>{
-      const counts={};
-      fs.forEach(f=>{counts[f]=0;});
-      let curAngle=angleRef.current;
-      for(let i=0;i<n;i++){
-        const extra=Math.PI*2*(7+cryptoRandom()*6);
-        curAngle+=extra;
-        const idx=winnerIdx(curAngle);
-        counts[fs[idx]]++;
-      }
-      const k=fs.length;
-      const expected=n/k;
-
-      // ── Chi-square goodness-of-fit: the proper test ──
-      const chi2=Object.values(counts).reduce(
-        (sum,obs)=>sum+Math.pow(obs-expected,2)/expected, 0
-      );
-      const df=k-1;
-      const critical=CHI2_CRIT_95[df-1] || 50;
-      const isFair=chi2<=critical;
-
-      // ── Bonferroni-corrected per-friend range (for individual bar display) ──
-      // Family-wise 95% confidence: each friend tested at alpha = 0.05/k.
-      // Approximate z-values for two-tailed at alpha/k:
-      let z;
-      if (k<=2) z=2.24;
-      else if (k<=4) z=2.50;
-      else if (k<=6) z=2.64;
-      else if (k<=10) z=2.81;
-      else if (k<=20) z=3.02;
-      else z=3.20;
-      const stddev=Math.sqrt(n*(1/k)*(1-1/k));
-      const margin=z*stddev;
-      const minOk=Math.max(0,expected-margin);
-      const maxOk=expected+margin;
-
-      setTestResults({
-        counts, total:n, expected, stddev, minOk, maxOk,
-        chi2, critical, isFair,
-        allInRange:isFair, // alias kept for backwards compatibility with JSX
-        running:false
+  // ── CARD MODE AUDIO ──
+  // Swoosh: frequency rises with each elimination (builds tension)
+  const playSwoosh=useCallback((progress=0)=>{
+    const c=getAC();if(!c)return;
+    try{
+      const o=c.createOscillator(),g=c.createGain(),f=c.createBiquadFilter();
+      o.connect(f);f.connect(g);g.connect(c.destination);
+      f.type="bandpass"; f.Q.value=2;
+      const baseFreq=400+progress*600; // 400Hz early, 1000Hz late
+      o.type="sawtooth"; o.frequency.setValueAtTime(baseFreq*2,c.currentTime);
+      o.frequency.exponentialRampToValueAtTime(baseFreq,c.currentTime+0.18);
+      f.frequency.setValueAtTime(baseFreq*3,c.currentTime);
+      f.frequency.exponentialRampToValueAtTime(baseFreq,c.currentTime+0.18);
+      g.gain.setValueAtTime(0,c.currentTime);
+      g.gain.linearRampToValueAtTime(0.12,c.currentTime+0.03);
+      g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.22);
+      o.start();o.stop(c.currentTime+0.25);
+    }catch(e){}
+  },[getAC]);
+  // Deep thunk when card is eliminated (drops into discard pile)
+  const playThunk=useCallback(()=>{
+    const c=getAC();if(!c)return;
+    try{
+      const o=c.createOscillator(),g=c.createGain();
+      o.connect(g);g.connect(c.destination);
+      o.type="sine"; o.frequency.setValueAtTime(180,c.currentTime);
+      o.frequency.exponentialRampToValueAtTime(60,c.currentTime+0.15);
+      g.gain.setValueAtTime(0.18,c.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.22);
+      o.start();o.stop(c.currentTime+0.25);
+    }catch(e){}
+  },[getAC]);
+  // Dramatic riser before winner reveal
+  const playRiser=useCallback(()=>{
+    const c=getAC();if(!c)return;
+    try{
+      const o=c.createOscillator(),g=c.createGain();
+      o.connect(g);g.connect(c.destination);
+      o.type="sawtooth"; o.frequency.setValueAtTime(120,c.currentTime);
+      o.frequency.exponentialRampToValueAtTime(880,c.currentTime+1.2);
+      g.gain.setValueAtTime(0,c.currentTime);
+      g.gain.linearRampToValueAtTime(0.1,c.currentTime+0.3);
+      g.gain.linearRampToValueAtTime(0.18,c.currentTime+1.0);
+      g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+1.35);
+      o.start();o.stop(c.currentTime+1.4);
+    }catch(e){}
+  },[getAC]);
+  // Dramatic reveal — deep brass chord
+  const playRevealChord=useCallback(()=>{
+    const c=getAC();if(!c)return;
+    try{
+      [261.63, 329.63, 392.00, 523.25].forEach((f,i)=>{
+        const o=c.createOscillator(),g=c.createGain();
+        o.connect(g);g.connect(c.destination);
+        o.type=i===0?"sawtooth":"sine";
+        o.frequency.value=f;
+        const t0=c.currentTime+i*0.04;
+        g.gain.setValueAtTime(0,t0);
+        g.gain.linearRampToValueAtTime(i===0?0.12:0.09,t0+0.08);
+        g.gain.exponentialRampToValueAtTime(0.001,t0+1.2);
+        o.start(t0);o.stop(t0+1.3);
       });
-    },50);
-  };
+    }catch(e){}
+  },[getAC]);
+
 
   const shareWinner=async()=>{
     if(!winner)return;
@@ -504,6 +390,80 @@ export default function App() {
     setShared(true);setTimeout(()=>setShared(false),2500);
   };
   const shameBoard=Object.entries(payCount).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+
+  /* ── CARD MODE: dramatic elimination ── */
+  const runCardElimination=()=>{
+    if(cardPhase==="eliminating")return;
+    const fs=friendsRef.current;
+    if(fs.length<2){setFErr(T[langRef.current].eMin);return;}
+    setFErr("");
+    setCardPhase("eliminating");
+    setEliminated([]);
+    setCardWinner(null);
+    // Use Fisher-Yates with cryptoRandom to determine elimination order
+    const order=shuffle(fs);
+    const toEliminate=order.slice(0,-1); // all except last
+    const finalWinner=order[order.length-1];
+    const total=toEliminate.length;
+
+    // Build-up cadence: starts fast, slows toward the end
+    // Time before each elimination, in ms
+    const delays=toEliminate.map((_,i)=>{
+      const t=i/Math.max(total-1,1); // 0 to 1
+      // Quadratic ease-in: starts ~600ms, ends ~2500ms; final card gets longer pause
+      const base=600+t*t*1900;
+      const isPenultimate=i===total-1;
+      return isPenultimate?Math.max(base,2400):base;
+    });
+
+    let acc=0;
+    toEliminate.forEach((name,i)=>{
+      acc+=delays[i];
+      setTimeout(()=>{
+        const progress=i/Math.max(total-1,1);
+        playSwoosh(progress);
+        // Delay thunk slightly after swoosh
+        setTimeout(()=>playThunk(),150);
+        setEliminated(prev=>[...prev,name]);
+      },acc);
+    });
+
+    // Riser kicks in 800ms before reveal
+    setTimeout(()=>playRiser(),acc+200);
+    // Final reveal
+    setTimeout(()=>{
+      playRevealChord();
+      boom(BEER_FX,1.5); // confetti
+      // Find winner's color from original SEGS palette
+      const idx=fs.indexOf(finalWinner);
+      const color=SEGS[idx%SEGS.length];
+      setCardWinner({name:finalWinner,...color});
+      setCardPhase("done");
+    },acc+1500);
+  };
+
+  const resetCards=()=>{
+    setCardPhase("idle");
+    setEliminated([]);
+    setCardWinner(null);
+  };
+
+  const shareCardWinner=async()=>{
+    if(!cardWinner)return;
+    const text=T[lang].cardsShareResult(cardWinner.name);
+    try{
+      if(navigator.share)await navigator.share({text,url:"https://rodada.pt"});
+      else window.open(`https://wa.me/?text=${encodeURIComponent(text+"\nhttps://rodada.pt")}`,"_blank");
+    }catch(e){}
+  };
+
+  // Reset card state when friends list changes
+  useEffect(()=>{
+    if(cardPhase!=="idle"){
+      setCardPhase("idle");setEliminated([]);setCardWinner(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[friends.length]);
 
   /* ── groups ── */
   const computeGroups=()=>{
@@ -780,6 +740,202 @@ export default function App() {
 
     .tag-line{font-size:0.62rem;color:#5a5a5a;letter-spacing:0.16em;text-align:center;font-weight:500}
 
+    /* ═══════════════════════════════════════════════════════════ */
+    /* ══════════════ CARD MODE — Quem paga o jantar ═══════════════ */
+    /* ═══════════════════════════════════════════════════════════ */
+
+    /* ── Mode toggle (iOS-style) ── */
+    .mode-toggle{display:inline-flex;align-items:center;gap:0;
+      background:rgba(0,0,0,0.5);border:2px solid rgba(255,229,0,0.3);
+      padding:4px;backdrop-filter:blur(10px);
+      box-shadow:inset 0 0 18px rgba(255,229,0,0.05), 0 4px 16px rgba(0,0,0,0.4);
+      position:relative;overflow:hidden}
+    .mode-opt{padding:9px 18px;font-family:Anton,sans-serif;font-size:0.88rem;
+      letter-spacing:0.06em;background:transparent;border:none;color:#666;
+      cursor:pointer;transition:color 0.25s;position:relative;z-index:2;white-space:nowrap}
+    .mode-opt.active{color:#000}
+    .mode-opt:hover:not(.active){color:#aaa}
+    .mode-slider{position:absolute;top:4px;bottom:4px;width:calc(50% - 4px);
+      background:linear-gradient(180deg,#FFF459,#FFE500);
+      transition:transform 0.32s cubic-bezier(0.34,1.4,0.64,1);
+      box-shadow:0 0 18px rgba(255,229,0,0.5), inset 0 1px 0 rgba(255,255,255,0.5);
+      z-index:1;left:4px}
+    .mode-slider.right{transform:translateX(100%)}
+
+    /* ── Card stage (3D perspective container) ── */
+    .card-stage{perspective:1400px;width:100%;max-width:420px;
+      min-height:320px;position:relative;
+      display:flex;align-items:center;justify-content:center;
+      transform-style:preserve-3d}
+
+    /* ── Individual credit card ── */
+    .credit-card{
+      width:240px;height:148px;border-radius:14px;
+      position:absolute;
+      background:linear-gradient(135deg,#0a0a0a 0%,#1a1a1a 40%,#0a0a0a 100%);
+      box-shadow:
+        0 18px 50px rgba(0,0,0,0.7),
+        0 8px 20px rgba(0,0,0,0.5),
+        inset 0 1px 0 rgba(255,255,255,0.08),
+        inset 0 -1px 0 rgba(0,0,0,0.4);
+      padding:16px;
+      transform-style:preserve-3d;
+      transition:transform 0.6s cubic-bezier(0.34,1.2,0.64,1), opacity 0.4s, filter 0.5s;
+      will-change:transform;
+      animation:cardFloat 6s ease-in-out infinite;
+      overflow:hidden;
+      cursor:default;
+    }
+    @keyframes cardFloat{
+      0%,100%{transform:var(--rest) translateY(0px) rotateZ(var(--tilt))}
+      50%{transform:var(--rest) translateY(-6px) rotateZ(calc(var(--tilt) + 1deg))}
+    }
+    /* Holographic shine */
+    .credit-card::before{
+      content:"";position:absolute;inset:0;border-radius:14px;
+      background:linear-gradient(115deg,
+        transparent 30%,
+        rgba(255,215,0,0.08) 45%,
+        rgba(255,255,255,0.15) 50%,
+        rgba(0,207,255,0.08) 55%,
+        transparent 70%);
+      pointer-events:none;
+      animation:shine 4s ease-in-out infinite;
+    }
+    @keyframes shine{0%,100%{transform:translateX(-20%)}50%{transform:translateX(20%)}}
+    /* Top edge highlight */
+    .credit-card::after{
+      content:"";position:absolute;top:0;left:0;right:0;height:50%;
+      background:linear-gradient(180deg,rgba(255,255,255,0.06),transparent);
+      border-radius:14px 14px 0 0;pointer-events:none;
+    }
+
+    .cc-brand{position:absolute;top:14px;right:16px;font-family:Anton,sans-serif;
+      font-size:0.62rem;letter-spacing:0.18em;color:#FFD700;
+      text-shadow:0 0 8px rgba(255,215,0,0.5);z-index:2}
+    .cc-chip{position:absolute;top:42px;left:18px;width:36px;height:26px;
+      background:linear-gradient(135deg,#FFD700 0%,#E6CE00 40%,#B8A500 100%);
+      border-radius:5px;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,0.4), 0 1px 2px rgba(0,0,0,0.4);
+      overflow:hidden;z-index:2}
+    .cc-chip::before{content:"";position:absolute;inset:4px;
+      background:
+        linear-gradient(90deg,transparent 32%,#0a0a0a 33%,#0a0a0a 35%,transparent 36%),
+        linear-gradient(90deg,transparent 64%,#0a0a0a 65%,#0a0a0a 67%,transparent 68%),
+        linear-gradient(0deg,transparent 48%,#0a0a0a 49%,#0a0a0a 51%,transparent 52%);
+      opacity:0.7;border-radius:3px}
+    .cc-number{position:absolute;bottom:42px;left:18px;right:18px;
+      font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:0.78rem;
+      color:#e0e0e0;letter-spacing:0.18em;z-index:2;
+      text-shadow:0 1px 2px rgba(0,0,0,0.7)}
+    .cc-name{position:absolute;bottom:14px;left:18px;
+      font-family:Anton,sans-serif;font-size:0.9rem;letter-spacing:0.08em;
+      color:#fff;z-index:2;
+      text-shadow:0 1px 2px rgba(0,0,0,0.7);
+      max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .cc-expiry{position:absolute;bottom:14px;right:18px;
+      font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:0.65rem;
+      color:#999;letter-spacing:0.1em;z-index:2}
+
+    /* ── Card states ── */
+    .credit-card.eliminated{
+      animation:cardOut 0.7s cubic-bezier(0.55,0,0.78,0) forwards;
+      pointer-events:none;
+    }
+    @keyframes cardOut{
+      0%{transform:var(--rest) translateY(0) scale(1);opacity:1;filter:none}
+      40%{transform:var(--rest) translateY(-40px) rotateZ(var(--out-rot)) scale(1.05);opacity:1}
+      100%{transform:var(--rest) translateY(-160px) translateX(var(--out-x)) rotateZ(calc(var(--out-rot) * 3)) scale(0.4);opacity:0;filter:blur(6px)}
+    }
+
+    /* Winner card centered + dramatic */
+    .credit-card.winner{
+      animation:cardWinner 1.3s cubic-bezier(0.34,1.4,0.64,1) forwards;
+      z-index:50;
+    }
+    @keyframes cardWinner{
+      0%{transform:var(--rest) scale(1) rotateY(0deg);opacity:1}
+      50%{transform:translate(-50%,-50%) scale(1.15) rotateY(180deg);opacity:1;left:50%;top:50%}
+      100%{transform:translate(-50%,-50%) scale(1.4) rotateY(360deg);opacity:1;left:50%;top:50%}
+    }
+    .credit-card.winner-final{
+      transform:translate(-50%,-50%) scale(1.4) !important;
+      left:50% !important;top:50% !important;
+      animation:winnerPulse 2s ease-in-out infinite;
+      box-shadow:
+        0 25px 70px rgba(255,34,0,0.5),
+        0 0 80px rgba(255,34,0,0.3),
+        inset 0 1px 0 rgba(255,255,255,0.15);
+      border:2px solid #FF2200;
+    }
+    @keyframes winnerPulse{
+      0%,100%{box-shadow:0 25px 70px rgba(255,34,0,0.5),0 0 80px rgba(255,34,0,0.3),inset 0 1px 0 rgba(255,255,255,0.15)}
+      50%{box-shadow:0 25px 70px rgba(255,34,0,0.7),0 0 120px rgba(255,34,0,0.5),inset 0 1px 0 rgba(255,255,255,0.15)}
+    }
+    .credit-card.winner-final .cc-name{color:#FF6B00;text-shadow:0 0 14px rgba(255,107,0,0.7);font-size:1rem}
+    .credit-card.winner-final .cc-brand{color:#FF2200;text-shadow:0 0 10px rgba(255,34,0,0.6)}
+
+    /* ── Card counter ── */
+    .card-counter{font-family:'IBM Plex Mono',monospace;font-size:0.75rem;
+      color:#888;letter-spacing:0.18em;text-align:center;margin-top:8px;
+      min-height:1.2em}
+    .card-phase-label{font-family:Anton,sans-serif;font-size:0.95rem;color:#FFE500;
+      letter-spacing:0.1em;text-align:center;text-shadow:0 0 10px rgba(255,229,0,0.4);
+      margin-bottom:4px;animation:pulseLabel 1.2s ease-in-out infinite}
+    @keyframes pulseLabel{0%,100%{opacity:0.8}50%{opacity:1}}
+
+    /* ── Card action buttons ── */
+    .btn-card-primary{width:100%;max-width:420px;padding:18px 0;
+      font-family:Anton,sans-serif;font-size:1.3rem;letter-spacing:0.08em;color:#000;
+      background:linear-gradient(180deg,#FFF459,#FFE500 50%,#E6CE00);
+      border:3px solid #000;cursor:pointer;
+      box-shadow:8px 8px 0 #FF2200, 0 0 30px rgba(255,229,0,0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+      transition:transform 0.08s,box-shadow 0.08s;position:relative;overflow:hidden}
+    .btn-card-primary::before{content:"";position:absolute;top:0;left:-100%;width:50%;height:100%;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,0.5),transparent);
+      animation:shi 3s ease-in-out infinite}
+    .btn-card-primary:hover:not(:disabled){transform:translate(-2px,-2px);box-shadow:10px 10px 0 #FF2200, 0 0 40px rgba(255,229,0,0.5)}
+    .btn-card-primary:active:not(:disabled){transform:translate(4px,4px);box-shadow:4px 4px 0 #FF2200}
+    .btn-card-primary:disabled{background:linear-gradient(180deg,#2a2a2a,#1a1a1a);color:#666;cursor:not-allowed;box-shadow:4px 4px 0 #2a2a2a;transform:translate(4px,4px)}
+    .btn-card-primary:disabled::before{display:none}
+
+    .btn-card-secondary{width:100%;max-width:420px;padding:14px 0;
+      font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:0.82rem;
+      letter-spacing:0.12em;background:rgba(255,255,255,0.02);
+      border:2px solid #666;color:#888;cursor:pointer;
+      transition:all 0.15s;backdrop-filter:blur(6px)}
+    .btn-card-secondary:hover:not(:disabled){border-color:#fff;color:#fff;background:rgba(255,255,255,0.05);box-shadow:0 0 18px rgba(255,255,255,0.15)}
+    .btn-card-secondary:disabled{opacity:0.3;cursor:not-allowed}
+
+    .card-btn-row{display:flex;gap:10px;width:100%;max-width:420px}
+    .card-btn-row .btn-card-primary, .card-btn-row .btn-card-secondary{flex:1}
+
+    /* ── Card winner modal ── */
+    .card-winner-card{max-width:440px;width:100%;padding:42px 28px 32px;
+      background:linear-gradient(180deg,#0a0a0a 0%,#000 100%);
+      text-align:center;animation:pi 0.45s cubic-bezier(0.34,1.56,0.64,1);
+      position:relative;overflow:hidden;
+      border:4px solid #FF2200;
+      box-shadow:14px 14px 0 #FF2200, 0 0 80px rgba(255,34,0,0.45)}
+    .card-winner-card::before{content:"";position:absolute;inset:0;
+      background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(255,34,0,0.12),transparent);pointer-events:none}
+    .cw-label{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;
+      color:#FF2200;letter-spacing:0.3em;margin-bottom:14px;font-weight:700;
+      text-shadow:0 0 10px rgba(255,34,0,0.5)}
+    .cw-name{font-family:Anton,sans-serif;font-size:clamp(2.8rem,11vw,4.4rem);
+      line-height:1;margin-bottom:16px;word-break:break-word;letter-spacing:0.02em}
+    .cw-msg{font-size:1.32rem;margin-bottom:24px;color:#fff;line-height:1.4;font-weight:500}
+    .cw-btns{display:flex;flex-direction:column;gap:11px;position:relative;z-index:2}
+    .btn-cw-again{font-family:Anton,sans-serif;font-size:1.2rem;letter-spacing:0.06em;
+      padding:14px 0;border:3px solid #000;cursor:pointer;width:100%;
+      box-shadow:6px 6px 0 #000;transition:all 0.08s;font-weight:bold;
+      background:linear-gradient(180deg,#FFF459,#FFE500);color:#000}
+    .btn-cw-again:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 #000}
+    .btn-cw-share{width:100%;padding:13px 0;font-family:'IBM Plex Mono',monospace;
+      font-weight:700;font-size:0.84rem;letter-spacing:0.1em;
+      background:transparent;border:2px solid #fff;color:#fff;cursor:pointer;transition:all 0.15s}
+    .btn-cw-share:hover{background:#fff;color:#000;box-shadow:0 0 22px rgba(255,255,255,0.4)}
+
     /* ── GROUPS TAB ── */
     .p-tag{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;
       border:2px solid rgba(255,255,255,0.18);font-family:Anton,sans-serif;font-size:0.82rem;
@@ -918,10 +1074,139 @@ export default function App() {
       letter-spacing:0.14em;font-family:'IBM Plex Mono',monospace;font-weight:500;
       border-top:1px solid rgba(255,229,0,0.08)}
 
+    /* ════════════════════════════════════════════ */
+    /* ═══════ CARD MODE — premium 3D cards ═══════ */
+    /* ════════════════════════════════════════════ */
+
+    /* iPhone-style mode toggle */
+    .mode-toggle{position:relative;display:inline-flex;background:rgba(0,0,0,0.5);
+      border:2px solid rgba(255,255,255,0.1);padding:4px;backdrop-filter:blur(10px);
+      box-shadow:0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+      margin-bottom:4px}
+    .mode-pill{position:relative;z-index:2;padding:9px 18px;background:transparent;border:none;
+      cursor:pointer;font-family:Anton,sans-serif;font-size:0.9rem;letter-spacing:0.07em;
+      color:#888;transition:color 0.25s;white-space:nowrap}
+    .mode-pill.active{color:#000}
+    .mode-pill:hover:not(.active){color:#ccc}
+    .mode-slider{position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);
+      background:linear-gradient(180deg,#FFF459,#FFE500);z-index:1;
+      transition:transform 0.32s cubic-bezier(0.34,1.4,0.5,1);
+      box-shadow:0 2px 8px rgba(255,229,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3)}
+    .mode-slider.right{transform:translateX(100%)}
+
+    /* Cards title */
+    .cards-title{font-family:Anton,sans-serif;font-size:clamp(1.3rem,4vw,1.7rem);
+      color:#FFE500;letter-spacing:0.1em;text-align:center;
+      text-shadow:0 0 18px rgba(255,229,0,0.5);margin-top:6px}
+
+    /* 3D stage — perspective container */
+    .cards-stage{position:relative;width:100%;max-width:${SZ}px;height:340px;
+      perspective:1200px;perspective-origin:50% 50%;
+      display:flex;align-items:center;justify-content:center}
+    .cards-deck{position:absolute;inset:0;transform-style:preserve-3d}
+
+    /* Individual card */
+    .card-3d{position:absolute;top:50%;left:50%;width:200px;height:128px;
+      transform-style:preserve-3d;transition:transform 0.7s cubic-bezier(0.34,1.4,0.5,1),
+                                              opacity 0.7s ease, filter 0.7s ease;
+      will-change:transform}
+    .card-3d.winner{transition:transform 1.2s cubic-bezier(0.34,1.6,0.5,1),
+                                  filter 1.2s ease, opacity 0.5s ease;
+                    animation:card-pulse 2s ease-in-out infinite}
+    @keyframes card-pulse{
+      0%,100%{filter:drop-shadow(0 0 30px currentColor)}
+      50%{filter:drop-shadow(0 0 55px currentColor)}
+    }
+
+    .card-face{position:absolute;inset:0;border-radius:12px;overflow:hidden;
+      background:linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 45%, #000 100%);
+      border:1px solid rgba(255,255,255,0.08);
+      box-shadow:
+        0 8px 24px rgba(0,0,0,0.7),
+        inset 0 1px 0 rgba(255,255,255,0.08),
+        inset 0 -1px 0 rgba(0,0,0,0.5);
+      padding:11px 13px;
+      color:#fff;font-family:'IBM Plex Mono',monospace}
+
+    /* Holographic shine that moves */
+    .card-shine{position:absolute;top:-50%;left:-50%;width:200%;height:200%;
+      background:linear-gradient(115deg,
+        transparent 30%,
+        rgba(255,255,255,0.04) 45%,
+        rgba(255,255,255,0.10) 50%,
+        rgba(255,255,255,0.04) 55%,
+        transparent 70%);
+      animation:card-shine 5s ease-in-out infinite;
+      pointer-events:none}
+    @keyframes card-shine{
+      0%,100%{transform:translateX(-30%)}
+      50%{transform:translateX(30%)}
+    }
+
+    /* Chip — top left */
+    .card-chip{position:absolute;top:32px;left:14px;width:32px;height:25px;
+      filter:drop-shadow(0 1px 2px rgba(0,0,0,0.5))}
+
+    /* Brand top right */
+    .card-brand{position:absolute;top:11px;right:13px;font-family:Anton,sans-serif;
+      font-size:0.65rem;letter-spacing:0.16em;color:#FFE500;
+      text-shadow:0 0 8px rgba(255,229,0,0.4)}
+
+    /* Card number — middle */
+    .card-number{position:absolute;top:62px;left:14px;right:14px;
+      font-family:'IBM Plex Mono',monospace;font-size:0.78rem;
+      letter-spacing:0.12em;color:#bbb;font-weight:500}
+
+    /* Bottom row: cardholder + expiry */
+    .card-bottom{position:absolute;bottom:11px;left:14px;right:14px;
+      display:flex;justify-content:space-between;align-items:flex-end;gap:8px}
+    .card-label{font-size:0.5rem;color:#555;letter-spacing:0.16em;
+      text-transform:uppercase;margin-bottom:2px;font-weight:600}
+    .card-name{font-family:Anton,sans-serif;font-size:0.78rem;letter-spacing:0.05em;
+      color:#fff;text-transform:uppercase;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px}
+    .card-exp{font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:#aaa;
+      letter-spacing:0.08em;text-align:right}
+
+    /* Color accent strip — bottom */
+    .card-accent{position:absolute;bottom:0;left:0;right:0;height:3px}
+
+    /* Eliminated stamp */
+    .card-stamp{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-12deg);
+      color:#FF2200;font-family:Anton,sans-serif;font-size:1.4rem;letter-spacing:0.12em;
+      border:3px solid #FF2200;padding:4px 14px;text-align:center;
+      box-shadow:0 0 18px rgba(255,34,0,0.6);
+      background:rgba(0,0,0,0.3);backdrop-filter:blur(2px);
+      animation:stamp-in 0.35s cubic-bezier(0.34,1.8,0.5,1)}
+    @keyframes stamp-in{
+      from{transform:translate(-50%,-50%) rotate(-12deg) scale(2.5);opacity:0}
+      to{transform:translate(-50%,-50%) rotate(-12deg) scale(1);opacity:1}
+    }
+
+    /* Cards ready hint */
+    .cards-ready{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;
+      color:#666;letter-spacing:0.1em;text-align:center}
+
+    /* Winner label inline */
+    .cards-winner-label{font-family:Anton,sans-serif;font-size:clamp(1.4rem,5vw,2rem);
+      letter-spacing:0.05em;text-align:center;padding:14px 8px;
+      animation:winner-bounce 0.6s cubic-bezier(0.34,1.7,0.5,1)}
+    @keyframes winner-bounce{
+      from{transform:scale(0.4) translateY(20px);opacity:0;filter:blur(8px)}
+      to{transform:scale(1);opacity:1;filter:blur(0)}
+    }
+
+    /* btn-ws used in cards mode share */
+    .cards-stage + .btn-spin{margin-top:4px}
+
     /* ── responsive ── */
     @media (max-width:380px){
       .hdr{padding:18px 16px}
       .main{padding:24px 14px 40px}
+      .cards-stage{height:300px}
+      .card-3d{width:170px;height:108px}
+      .card-number{font-size:0.68rem;top:54px}
+      .card-name{font-size:0.7rem;max-width:90px}
     }
   `;
 
@@ -963,13 +1248,140 @@ export default function App() {
         {/* ═══ RODADA ═══ */}
         {tab==="rodada"&&(
           <main className="main">
-            <div className="canvas-wrap">
-              <canvas ref={canvasRef} style={{width:SZ,height:SZ,maxWidth:"100%",display:"block"}}/>
+            {/* Mode toggle: Wheel vs Cards */}
+            <div className="mode-toggle" role="tablist">
+              <button role="tab" aria-selected={mode==="wheel"}
+                className={`mode-pill${mode==="wheel"?" active":""}`}
+                onClick={()=>{setMode("wheel");resetCards();}}>
+                {t.modeWheel}
+              </button>
+              <button role="tab" aria-selected={mode==="cards"}
+                className={`mode-pill${mode==="cards"?" active":""}`}
+                onClick={()=>setMode("cards")}>
+                {t.modeCards}
+              </button>
+              <div className={`mode-slider${mode==="cards"?" right":""}`} aria-hidden/>
             </div>
 
-            <button className="btn-spin" onClick={spin} disabled={spinning} aria-label="Spin the wheel">
-              {spinning?t.spinning:(<><span className="ic">🍺</span>{t.spin}</>)}
-            </button>
+            {mode==="wheel"?(
+              <>
+                <div className="canvas-wrap">
+                  <canvas ref={canvasRef} style={{width:SZ,height:SZ,maxWidth:"100%",display:"block"}}/>
+                </div>
+
+                <button className="btn-spin" onClick={spin} disabled={spinning} aria-label="Spin the wheel">
+                  {spinning?t.spinning:(<><span className="ic">🍺</span>{t.spin}</>)}
+                </button>
+              </>
+            ):(
+              <>
+                <div className="cards-title">{t.cardsTitle}</div>
+
+                {/* 3D card stage */}
+                <div className="cards-stage" aria-live="polite">
+                  <div className="cards-deck">
+                    {friends.map((f,i)=>{
+                      const c=SEGS[i%SEGS.length];
+                      const elimIdx=eliminated.indexOf(f);
+                      const isEliminated=elimIdx>=0;
+                      const isWinner=cardWinner&&cardWinner.name===f;
+                      // Fan layout: spread cards in arc
+                      const total=friends.length;
+                      const center=(total-1)/2;
+                      const offset=i-center;
+                      const baseAngle=offset*(Math.min(8,40/total));
+                      const baseX=offset*(Math.min(28,140/total));
+                      const baseY=Math.abs(offset)*3;
+                      // Eliminated: fly off
+                      const elimAngle=(i%2===0?-1:1)*(45+elimIdx*7);
+                      const elimX=(i%2===0?-1:1)*(180+elimIdx*15);
+                      const elimY=160+elimIdx*8;
+                      // Winner: center, scale up
+                      const style=isWinner?{
+                        transform:`translate(-50%,-55%) rotate(0deg) scale(1.15)`,
+                        zIndex:100,
+                        filter:"drop-shadow(0 0 40px "+c.bg+")",
+                      }:isEliminated?{
+                        transform:`translate(calc(-50% + ${elimX}px), calc(-50% + ${elimY}px)) rotate(${elimAngle}deg) scale(0.7)`,
+                        opacity:0.25,filter:"grayscale(0.8) blur(1px)",zIndex:i,
+                      }:{
+                        transform:`translate(calc(-50% + ${baseX}px), calc(-50% + ${baseY}px)) rotate(${baseAngle}deg)`,
+                        zIndex:50-Math.abs(offset),
+                      };
+                      return(
+                        <div key={f} className={`card-3d${isEliminated?" eliminated":""}${isWinner?" winner":""}`} style={style}>
+                          {/* Card face */}
+                          <div className="card-face">
+                            {/* Holographic shine */}
+                            <div className="card-shine"/>
+                            {/* Chip SVG */}
+                            <svg className="card-chip" viewBox="0 0 40 32" aria-hidden>
+                              <defs>
+                                <linearGradient id={`cg${i}`} x1="0" y1="0" x2="1" y2="1">
+                                  <stop offset="0" stopColor="#FFD970"/>
+                                  <stop offset="0.5" stopColor="#C09020"/>
+                                  <stop offset="1" stopColor="#8B6914"/>
+                                </linearGradient>
+                              </defs>
+                              <rect x="1" y="1" width="38" height="30" rx="4" fill={`url(#cg${i})`} stroke="#5a4408" strokeWidth="0.5"/>
+                              <line x1="14" y1="1" x2="14" y2="31" stroke="#5a4408" strokeWidth="0.4"/>
+                              <line x1="26" y1="1" x2="26" y2="31" stroke="#5a4408" strokeWidth="0.4"/>
+                              <line x1="1" y1="10" x2="39" y2="10" stroke="#5a4408" strokeWidth="0.4"/>
+                              <line x1="1" y1="22" x2="39" y2="22" stroke="#5a4408" strokeWidth="0.4"/>
+                            </svg>
+                            {/* Brand text top right */}
+                            <div className="card-brand">RODADA<span style={{color:c.bg}}>•</span></div>
+                            {/* Card number */}
+                            <div className="card-number">•••• •••• •••• {String(1000+i).slice(-4)}</div>
+                            {/* Bottom row */}
+                            <div className="card-bottom">
+                              <div className="card-left">
+                                <div className="card-label">{t.cardsCardholder}</div>
+                                <div className="card-name">{f.toUpperCase()}</div>
+                              </div>
+                              <div className="card-right">
+                                <div className="card-label">{t.cardsExpires}</div>
+                                <div className="card-exp">{t.cardsExpYear}</div>
+                              </div>
+                            </div>
+                            {/* Color accent strip */}
+                            <div className="card-accent" style={{background:c.bg,boxShadow:`0 0 14px ${c.bg}`}}/>
+                            {/* Eliminated stamp */}
+                            {isEliminated&&!isWinner&&(
+                              <div className="card-stamp">{t.cardsEliminated}</div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {cardPhase==="done"&&cardWinner?(
+                  <>
+                    <div className="cards-winner-label" style={{color:cardWinner.bg,textShadow:`0 0 20px ${cardWinner.bg}`}}>
+                      ⭐ {cardWinner.name.toUpperCase()} {t.cardsPays}
+                    </div>
+                    <button className="btn-spin" onClick={resetCards}>
+                      🔄 {t.cardsRestart}
+                    </button>
+                    <button className="btn-ws" onClick={shareCardWinner} style={{maxWidth:SZ,width:"100%"}}>
+                      {t.shareResult}
+                    </button>
+                  </>
+                ):(
+                  <button className="btn-spin" onClick={runCardElimination}
+                    disabled={cardPhase==="eliminating"||friends.length<2}>
+                    {cardPhase==="eliminating"?t.cardsEliminating:t.cardsCta}
+                  </button>
+                )}
+
+                {/* Status text below button */}
+                {cardPhase==="idle"&&friends.length>=2&&(
+                  <div className="cards-ready">{t.cardsReady}</div>
+                )}
+              </>
+            )}
 
             <div className="ctrl">
               <div className="irow">
@@ -998,7 +1410,8 @@ export default function App() {
               </div>
             </div>
 
-            {shameBoard.length>0&&(
+            {/* Shame board only in wheel mode */}
+            {mode==="wheel"&&shameBoard.length>0&&(
               <div className="shame">
                 <div className="shame-h">🏆 {t.shame}</div>
                 {shameBoard.map(([name,count],i)=>(
@@ -1017,9 +1430,11 @@ export default function App() {
               <button className={`btn-ghost${shared?" ok":""}`} onClick={copyLink}>
                 {shared?t.copied:t.share}
               </button>
-              <button className="btn-test" onClick={()=>runTest(100)} aria-label="Test 100 spins">
-                {t.testBtn}
-              </button>
+              {mode==="wheel"&&(
+                <button className="btn-test" onClick={()=>runTest(100)} aria-label="Test 100 spins">
+                  {t.testBtn}
+                </button>
+              )}
             </div>
             <div className="tag-line">{t.tag}</div>
           </main>

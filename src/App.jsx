@@ -253,7 +253,7 @@ export default function App() {
 
   // Reset card mode whenever friend list changes
   useEffect(()=>{
-    setEliminated([]); setCardWinner(null); setCardPhase("idle"); setAutoMode(false);
+    setEliminated([]); setCardWinner(null); setCardPhase("idle");
   },[friends.length]);
 
   useEffect(()=>{

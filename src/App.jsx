@@ -80,10 +80,10 @@ const T = {
     testClose:"FECHAR",
     testRunning:"A SORTEAR...",
     tabWheel:"RODADA", tabGroups:"GRUPOS",
-    msgs:["Tira a carteira! 💸","É a tua vez! 🍺","Sorte tem preço! 💀","Dá cá o MB Way! 📱","Não fujas! 🏃‍♂️","A vida é assim! 🎲","Aí tens, {campeão/campeã}! 🏆","Desta não escapas! 👋"],
+    msgs:["Tira a carteira! 💸","É a tua vez! 🍺","Sorte tem preço! 💀","Dá cá o MB Way! 📱","Não fujas! 🏃","A vida é assim! 🎲","Aí tens, {campeão/campeã}! 🏆","Desta não escapas! 👋"],
     msgsRepeat:["DE NOVO?! O karma é real! 😂","A sorte não está do teu lado! 💀","Dois seguidos! Estás {amaldiçoado/amaldiçoada}! 🤣","A roda adora-te! (a carteira nem por isso) 😭"],
     msgsMulti:["Vai ter de vender um rim! 🫁","O carro já tem comprador! 🚗💨","A casa vai à praça! 🏠🔨","Cancela as férias! ✈️❌","O seguro de vida vai valer! 📋💀","Pede o dinheiro à ex! 💍😬","O banco ligou, estão preocupados! 🏦📞","A mãe vai ter de saber disto! 👩‍👦😅","Duas semanas a comer sopa! 🍲😭","Oficialmente {falido/falida}! 📉💸","O senhorio vai ter de esperar! 🏠😬","Começas amanhã no Uber Eats! 🛵📱"],
-    shareMsg:(n)=>`🍺 O ${n} paga a próxima rodada!\nSorteado em rodada.pt`,
+    shareMsg:(n,g="M")=>`🍺 ${g==="F"?"A":"O"} ${n} paga a próxima rodada!\nSorteado em rodada.pt`,
     groupSub:"Divide qualquer grupo — escola, desporto, trabalho, festas",
     playerPh:"Nome do participante...", playerAdd:"JUNTAR",
     eGMin:"Precisa de pelo menos 4 participantes!", eGMax:"Máximo 30 participantes!", eGDup:"Esse participante já está na lista!",
@@ -110,7 +110,7 @@ const T = {
     cardsExpires:"VALID THRU",
     cardsExpYear:"∞/∞",
     cardsRestart:"NOVO SORTEIO",
-    cardsShareResult:(n)=>`💳 ${n} paga o jantar!\n\nSorteado em rodada.pt`,
+    cardsShareResult:(n,g="M")=>`💳 ${g==="F"?"A":"O"} ${n} paga o jantar!\n\nSorteado em rodada.pt`,
   },
   en:{
     sub:"Who's buying the round?", ph:"Friend's name...", add:"ADD",
@@ -134,10 +134,10 @@ const T = {
     testClose:"CLOSE",
     testRunning:"DRAWING...",
     tabWheel:"ROUND", tabGroups:"GROUPS",
-    msgs:["Get your wallet out! 💸","It's your round, mate! 🍺","Luck has a price! 💀","Time to pay up! 📱","No running away! 🏃‍♂️","That's life! 🎲","There you go, champ! 🏆","No escape this time! 👋"],
+    msgs:["Get your wallet out! 💸","It's your round, mate! 🍺","Luck has a price! 💀","Time to pay up! 📱","No running away! 🏃","That's life! 🎲","There you go, champ! 🏆","No escape this time! 👋"],
     msgsRepeat:["AGAIN?! Karma is real! 😂","Luck's not on your side! 💀","Twice in a row! Cursed! 🤣","The wheel loves you! (wallet, not so much) 😭"],
     msgsMulti:["Time to sell a kidney! 🫁","Car's on eBay already! 🚗💨","House goes to auction! 🏠🔨","Cancel the holidays! ✈️❌","Life insurance looking good! 📋💀","Ask your ex for money! 💍😬","Bank called, they're worried! 🏦📞","Your mum needs to know! 👩‍👦😅","Two weeks of noodles! 🍜😭","Officially bankrupt! 📉💸","Landlord can wait! 🏠😬","Starting Deliveroo tomorrow! 🛵📱"],
-    shareMsg:(n)=>`🍺 ${n} is buying the next round!\nDrawn at rodada.pt`,
+    shareMsg:(n,g="M")=>`🍺 ${n} is buying the next round!\nDrawn at rodada.pt`,
     groupSub:"Split any group — school, sports, work, parties",
     playerPh:"Participant name...", playerAdd:"ADD",
     eGMin:"Need at least 4 participants!", eGMax:"Maximum 30 participants!", eGDup:"That participant is already on the list!",
@@ -164,7 +164,7 @@ const T = {
     cardsExpires:"VALID THRU",
     cardsExpYear:"∞/∞",
     cardsRestart:"NEW DRAW",
-    cardsShareResult:(n)=>`💳 ${n} is paying for dinner!\n\nDrawn at rodada.pt`,
+    cardsShareResult:(n,g="M")=>`💳 ${n} is paying for dinner!\n\nDrawn at rodada.pt`,
   },
 };
 
@@ -285,12 +285,10 @@ export default function App() {
   const [tab,setTab]         = useState("rodada");
   const [sparks,setSparks]   = useState([]);
   const [friends,setFriends] = useState([...WHEEL_DEF]);
-  // Per-name gender override map. If a name isn't here, falls back to guessGender(name).
+  // Per-name gender override map (reserved for future use). Falls back to guessGender(name).
+  // eslint-disable-next-line no-unused-vars
   const [genders,setGenders] = useState({});
   const getGender = (name) => genders[name] || guessGender(name);
-  const toggleGender = (name) => {
-    setGenders(prev => ({...prev, [name]: cycleGender(getGender(name))}));
-  };
   const [fInput,setFInput]   = useState("");
   const [spinning,setSpinning]= useState(false);
   const [winner,setWinner]   = useState(null);
@@ -776,7 +774,7 @@ export default function App() {
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],
-          text: T[lang].shareMsg(winnerName) + "\nhttps://rodada.pt",
+          text: T[lang].shareMsg(winnerName, getGender(winnerName)) + "\nhttps://rodada.pt",
         });
       } else {
         // Desktop fallback: download
@@ -796,7 +794,7 @@ export default function App() {
 
   const shareWinner=async()=>{
     if(!winner)return;
-    const text=T[lang].shareMsg(winner.name);
+    const text=T[lang].shareMsg(winner.name, winner.gender||getGender(winner.name));
     try{if(navigator.share)await navigator.share({text,url:"https://rodada.pt"});
       else window.open(`https://wa.me/?text=${encodeURIComponent(text+"\nhttps://rodada.pt")}`,"_blank");}catch(e){}
   };
@@ -873,7 +871,7 @@ export default function App() {
 
   const shareCardWinner=async()=>{
     if(!cardWinner)return;
-    const text=T[lang].cardsShareResult(cardWinner.name);
+    const text=T[lang].cardsShareResult(cardWinner.name, getGender(cardWinner.name));
     try{
       if(navigator.share)await navigator.share({text,url:"https://rodada.pt"});
       else window.open(`https://wa.me/?text=${encodeURIComponent(text+"\nhttps://rodada.pt")}`,"_blank");
@@ -1060,10 +1058,6 @@ export default function App() {
       transition:transform 0.12s, box-shadow 0.12s;cursor:default;position:relative}
     .tag:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 rgba(0,0,0,0.5)}
     .tag-c{font-size:0.66rem;opacity:0.7;margin-left:2px;font-family:'IBM Plex Mono',monospace;font-weight:700}
-    .g-toggle{background:rgba(0,0,0,0.18);border:none;cursor:pointer;color:inherit;
-      font-size:0.95rem;line-height:1;padding:1px 5px;margin-right:3px;border-radius:3px;
-      opacity:0.85;transition:all 0.15s;font-weight:bold;display:inline-flex;align-items:center}
-    .g-toggle:hover{opacity:1;background:rgba(0,0,0,0.32);transform:scale(1.1)}
     .rm{background:none;border:none;cursor:pointer;color:inherit;font-size:1.15rem;line-height:1;
       opacity:0.55;padding:0 2px;transition:opacity 0.12s;font-weight:bold}
     .rm:hover{opacity:1}
@@ -1839,19 +1833,12 @@ export default function App() {
                 {friends.map((f,i)=>{
                   const cnt=payCount[f]||0,crown=cnt>=3?"👑":cnt===2?"🏆":cnt===1?"💸":"";
                   const c=SEGS[i%SEGS.length];
-                  const g=getGender(f);
                   return(
                     <div key={i} className="tag" style={{
                       background:`linear-gradient(180deg, ${lighten(c.bg,0.1)}, ${c.bg})`,
                       color:c.fg,
                       boxShadow:`2px 2px 0 rgba(0,0,0,0.6), 0 0 14px ${c.bg}40`,
                     }}>
-                      <button className="g-toggle" onClick={()=>toggleGender(f)}
-                        aria-label={`Género: ${g==="F"?"feminino":"masculino"} (clica para mudar)`}
-                        title={lang==="pt"?"Clica para mudar género":"Click to change gender"}
-                        style={{color:c.fg}}>
-                        {g==="F"?"♀":"♂"}
-                      </button>
                       {crown&&<span>{crown}</span>}{f.toUpperCase()}
                       {cnt>0&&<span className="tag-c">×{cnt}</span>}
                       <button className="rm" onClick={()=>rmFriend(i)} aria-label="Remove">×</button>

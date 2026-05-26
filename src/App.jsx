@@ -63,7 +63,7 @@ const T = {
     spin:"GIRAR A RODA", spinning:"A GIRAR...",
     pays:"PAGA A RODADA!", again:"OUTRA VEZ",
     share:"↗ PARTILHAR", shareResult:"📲 PARTILHAR RESULTADO", shareImage:"📸 GUARDAR IMAGEM", copied:"✓ COPIADO!",
-    eMin:"Junta pelo menos 2 amigos!", eMax:"Máximo 20 amigos!", eDup:"Esse nome já está na roda!",
+    eMin:"Junta pelo menos 2 amigos!", eMax:(n)=>`Máximo ${n} amigos!`, eDup:"Esse nome já está na roda!",
     tag:"GIRA · DECIDE · PAGA · REPETE", shame:"PATROCINADORES DA NOITE", toggle:"EN",
     testBtn:"🎯 TESTAR 100×",
     testTitle:"TESTE DE FAIRNESS",
@@ -80,9 +80,9 @@ const T = {
     testClose:"FECHAR",
     testRunning:"A SORTEAR...",
     tabWheel:"RODADA", tabGroups:"GRUPOS",
-    msgs:["Tira a carteira! 💸","É a tua vez! 🍺","Sorte tem preço! 💀","Dá cá o MB Way! 📱","Não fujas! 🏃‍♂️","A vida é assim! 🎲","Aí tens, campeão! 🏆","Desta não escapas! 👋"],
-    msgsRepeat:["DE NOVO?! O karma é real! 😂","A sorte não está do teu lado! 💀","Dois seguidos! Estás amaldiçoado! 🤣","A roda adora-te! (a carteira nem por isso) 😭"],
-    msgsMulti:["Vai ter de vender um rim! 🫁","O carro já tem comprador! 🚗💨","A casa vai à praça! 🏠🔨","Cancela as férias! ✈️❌","O seguro de vida vai valer! 📋💀","Pede o dinheiro à ex! 💍😬","O banco ligou, estão preocupados! 🏦📞","A mãe vai ter de saber disto! 👩‍👦😅","Duas semanas a comer sopa! 🍲😭","Oficialmente falido! 📉💸","O senhorio vai ter de esperar! 🏠😬","Começas amanhã no Uber Eats! 🛵📱"],
+    msgs:["Tira a carteira! 💸","É a tua vez! 🍺","Sorte tem preço! 💀","Dá cá o MB Way! 📱","Não fujas! 🏃‍♂️","A vida é assim! 🎲","Aí tens, {campeão/campeã}! 🏆","Desta não escapas! 👋"],
+    msgsRepeat:["DE NOVO?! O karma é real! 😂","A sorte não está do teu lado! 💀","Dois seguidos! Estás {amaldiçoado/amaldiçoada}! 🤣","A roda adora-te! (a carteira nem por isso) 😭"],
+    msgsMulti:["Vai ter de vender um rim! 🫁","O carro já tem comprador! 🚗💨","A casa vai à praça! 🏠🔨","Cancela as férias! ✈️❌","O seguro de vida vai valer! 📋💀","Pede o dinheiro à ex! 💍😬","O banco ligou, estão preocupados! 🏦📞","A mãe vai ter de saber disto! 👩‍👦😅","Duas semanas a comer sopa! 🍲😭","Oficialmente {falido/falida}! 📉💸","O senhorio vai ter de esperar! 🏠😬","Começas amanhã no Uber Eats! 🛵📱"],
     shareMsg:(n)=>`🍺 O ${n} paga a próxima rodada!\nSorteado em rodada.pt`,
     groupSub:"Divide qualquer grupo — escola, desporto, trabalho, festas",
     playerPh:"Nome do participante...", playerAdd:"JUNTAR",
@@ -102,8 +102,9 @@ const T = {
     cardsTitle:"QUEM PAGA O JANTAR?",
     cardsCta:"💳 ELIMINAR CARTÕES",
     cardsEliminating:"A ELIMINAR...",
-    cardsEliminated:"ELIMINADO",
+    cardsEliminated:"ELIMINAD{O/A}",
     cardsReady:"Pronto para o sorteio dramático",
+    cardsTooMany:(n,extra)=>`Mostrando ${n} cartões. Mais ${extra} amigos esperam pela roleta.`,
     cardsPays:"PAGA O JANTAR!",
     cardsCardholder:"CARTÃO RODADA",
     cardsExpires:"VALID THRU",
@@ -116,7 +117,7 @@ const T = {
     spin:"SPIN THE WHEEL", spinning:"SPINNING...",
     pays:"BUYS THE ROUND!", again:"AGAIN",
     share:"↗ SHARE", shareResult:"📲 SHARE RESULT", shareImage:"📸 SAVE IMAGE", copied:"✓ COPIED!",
-    eMin:"Add at least 2 friends!", eMax:"Maximum 20 friends!", eDup:"That name is already on the wheel!",
+    eMin:"Add at least 2 friends!", eMax:(n)=>`Maximum ${n} friends!`, eDup:"That name is already on the wheel!",
     tag:"SPIN · DECIDE · PAY · REPEAT", shame:"TONIGHT'S SPONSORS", toggle:"PT",
     testBtn:"🎯 TEST 100×",
     testTitle:"FAIRNESS TEST",
@@ -157,6 +158,7 @@ const T = {
     cardsEliminating:"ELIMINATING...",
     cardsEliminated:"ELIMINATED",
     cardsReady:"Ready for the dramatic draw",
+    cardsTooMany:(n,extra)=>`Showing ${n} cards. ${extra} more friends wait for the wheel.`,
     cardsPays:"PAYS THE DINNER!",
     cardsCardholder:"RODADA CARD",
     cardsExpires:"VALID THRU",
@@ -213,11 +215,82 @@ const darken = (hex, amt=0.3) => {
   return `rgb(${r},${g},${b})`;
 };
 
+// ── PT NAME GENDER DICTIONARY ──
+// Most common Portuguese first names with associated gender.
+// "M" = masculino, "F" = feminino. Lookup is case-insensitive.
+// When name not found, defaults to "M" (and user can toggle).
+const NAME_GENDER = {
+  // Female (PT)
+  "ana":"F","maria":"F","sofia":"F","beatriz":"F","catarina":"F","mariana":"F",
+  "carolina":"F","matilde":"F","leonor":"F","margarida":"F","francisca":"F",
+  "joana":"F","rita":"F","ines":"F","inês":"F","helena":"F","teresa":"F",
+  "filipa":"F","carla":"F","cristina":"F","sara":"F","raquel":"F","diana":"F",
+  "lara":"F","mafalda":"F","laura":"F","luisa":"F","luísa":"F","vera":"F",
+  "alice":"F","clara":"F","isabel":"F","júlia":"F","julia":"F","camila":"F",
+  "vitoria":"F","vitória":"F","emma":"F","eva":"F","luana":"F","lia":"F",
+  "patricia":"F","patrícia":"F","claudia":"F","cláudia":"F","mónica":"F","monica":"F",
+  "sandra":"F","susana":"F","paula":"F","marta":"F","fátima":"F","fatima":"F",
+  "elsa":"F","cecilia":"F","cecília":"F","celia":"F","célia":"F","alexandra":"F",
+  "andrea":"F","andreia":"F","barbara":"F","bárbara":"F","raquel":"F","luna":"F",
+  "lucia":"F","lúcia":"F","liliana":"F","sílvia":"F","silvia":"F","tatiana":"F",
+  "viviane":"F","constança":"F","constanca":"F","amelia":"F","amélia":"F",
+  "irene":"F","graça":"F","graca":"F","conceição":"F","conceicao":"F","gabriela":"F",
+  "rafaela":"F","manuela":"F","daniela":"F","fernanda":"F","aurora":"F","violeta":"F",
+  "victoria":"F","yara":"F","mia":"F","nina":"F","julieta":"F","beatriz":"F",
+  "miriam":"F","myriam":"F","melissa":"F","jessica":"F","jéssica":"F","fabiana":"F",
+  "rosa":"F","branca":"F","celeste":"F","aida":"F","alexia":"F","alexa":"F","aline":"F",
+  // Male (PT)
+  "joão":"M","joao":"M","francisco":"M","santiago":"M","martim":"M","afonso":"M",
+  "tomás":"M","tomas":"M","duarte":"M","dinis":"M","gabriel":"M","rodrigo":"M",
+  "guilherme":"M","lourenço":"M","lourenco":"M","vicente":"M","miguel":"M",
+  "diogo":"M","tiago":"M","gonçalo":"M","goncalo":"M","henrique":"M","manuel":"M",
+  "pedro":"M","ricardo":"M","andré":"M","andre":"M","bruno":"M","carlos":"M",
+  "daniel":"M","david":"M","eduardo":"M","fernando":"M","filipe":"M","hugo":"M",
+  "joaquim":"M","jorge":"M","josé":"M","jose":"M","leonardo":"M","luis":"M","luís":"M",
+  "marco":"M","mário":"M","mario":"M","nuno":"M","paulo":"M","rafael":"M","rúben":"M",
+  "ruben":"M","rui":"M","sergio":"M","sérgio":"M","simão":"M","simao":"M","vasco":"M",
+  "vitor":"M","vítor":"M","alexandre":"M","antonio":"M","antónio":"M","artur":"M",
+  "benjamim":"M","bernardo":"M","caetano":"M","cesar":"M","césar":"M","cristiano":"M",
+  "edgar":"M","emanuel":"M","fabio":"M","fábio":"M","frederico":"M","gustavo":"M",
+  "ivo":"M","ivan":"M","leandro":"M","marcelo":"M","mateus":"M","matias":"M","mauro":"M",
+  "nelson":"M","nicolau":"M","octavio":"M","octávio":"M","oliver":"M","oscar":"M",
+  "óscar":"M","otavio":"M","otávio":"M","patrício":"M","patricio":"M","quim":"M",
+  "raul":"M","renato":"M","ronaldo":"M","rúbem":"M","salvador":"M","samuel":"M",
+  "saul":"M","sebastião":"M","sebastiao":"M","silvestre":"M","teodoro":"M","tomé":"M",
+  "tome":"M","valentim":"M","valter":"M","wilson":"M","xavier":"M","zacarias":"M",
+  "noah":"M","nuno":"M","lucas":"M","leo":"M","leon":"M","liam":"M","theo":"M",
+  "ethan":"M","mathias":"M","mathéus":"M","matheus":"M","heitor":"M","hector":"M",
+  "rodrigo":"M","ramiro":"M","raimundo":"M","quirino":"M","alberto":"M","alfredo":"M",
+};
+
+// Detect gender from name. Returns "M" | "F" | "M" (default).
+const guessGender = (name) => {
+  if (!name) return "M";
+  const key = name.toLowerCase().trim().split(/\s+/)[0]; // first word only
+  return NAME_GENDER[key] || "M";
+};
+
+// Cycle gender: M → F → M
+const cycleGender = (g) => g === "M" ? "F" : "M";
+
+// Apply gender to PT phrase. Replaces tokens like {o/a}, {ado/ada}, {cromo/croma}.
+// Format: {masc/fem}. Example: "Foi escolhid{o/a}" → "Foi escolhido" (M) or "Foi escolhida" (F).
+const gendered = (text, g) => {
+  if (!text) return text;
+  return text.replace(/\{([^/}]+)\/([^}]+)\}/g, (_, m, f) => g === "F" ? f : m);
+};
+
 export default function App() {
   const [lang,setLang]       = useState("pt");
   const [tab,setTab]         = useState("rodada");
   const [sparks,setSparks]   = useState([]);
   const [friends,setFriends] = useState([...WHEEL_DEF]);
+  // Per-name gender override map. If a name isn't here, falls back to guessGender(name).
+  const [genders,setGenders] = useState({});
+  const getGender = (name) => genders[name] || guessGender(name);
+  const toggleGender = (name) => {
+    setGenders(prev => ({...prev, [name]: cycleGender(getGender(name))}));
+  };
   const [fInput,setFInput]   = useState("");
   const [spinning,setSpinning]= useState(false);
   const [winner,setWinner]   = useState(null);
@@ -467,8 +540,8 @@ export default function App() {
     return false;
   },[]);
 
-  // Redraw whenever friends list changes (and on tab change to "rodada")
-  useEffect(()=>{ if(tab==="rodada") draw(angleRef.current); },[friends,draw,tab]);
+  // Redraw whenever friends list changes, tab returns to wheel, or mode toggles back to wheel
+  useEffect(()=>{ if(tab==="rodada"&&mode==="wheel") draw(angleRef.current); },[friends,draw,tab,mode]);
 
   // ── WHEEL LOGIC ──
   // Calculates which segment is at the 12 o'clock pointer for a given angle
@@ -490,11 +563,13 @@ export default function App() {
   };
 
   // Pick contextual message based on payment count + repeat flag
-  const pickMsg=(count,isRepeat,l)=>{
+  const pickMsg=(count,isRepeat,l,gender="M")=>{
     const tr=T[l];
-    if(count>=3){const p=tr.msgsMulti; return p[~~(Math.random()*p.length)];}
-    if(isRepeat) return tr.msgsRepeat[~~(Math.random()*tr.msgsRepeat.length)];
-    return tr.msgs[~~(Math.random()*tr.msgs.length)];
+    let raw;
+    if(count>=3){const p=tr.msgsMulti; raw=p[~~(Math.random()*p.length)];}
+    else if(isRepeat) raw=tr.msgsRepeat[~~(Math.random()*tr.msgsRepeat.length)];
+    else raw=tr.msgs[~~(Math.random()*tr.msgs.length)];
+    return l==="pt" ? gendered(raw, gender) : raw;
   };
 
   // Spin the wheel — animated with easing
@@ -516,7 +591,7 @@ export default function App() {
         const prev=payRef.current[name]||0, cnt=prev+1, repeat=lastWRef.current===name;
         setPayCount(pc=>({...pc,[name]:cnt})); setLastWin(name);
         setSpinning(false); playFanfare(); boom(BEER_FX);
-        setWinner({name,msg:pickMsg(cnt,repeat,l),count:cnt,isRepeat:repeat,...SEGS[idx%SEGS.length]});
+        setWinner({name,msg:pickMsg(cnt,repeat,l,getGender(name)),count:cnt,isRepeat:repeat,gender:getGender(name),...SEGS[idx%SEGS.length]});
       }
     };
     animRef.current=requestAnimationFrame(frame);
@@ -727,7 +802,8 @@ export default function App() {
   };
   const addFriend=()=>{
     const nm=fInput.trim();if(!nm)return;
-    if(friends.length>=20){setFErr(t.eMax);return;}
+    const maxFriends = mode==="cards" ? 12 : 30;
+    if(friends.length>=maxFriends){setFErr(T[lang].eMax(maxFriends));return;}
     if(friends.some(f=>f.toLowerCase()===nm.toLowerCase())){setFErr(t.eDup);return;}
     setFErr("");setFriends(p=>[...p,nm]);setFInput("");
   };
@@ -741,7 +817,7 @@ export default function App() {
   /* ── CARD MODE: dramatic elimination ── */
   const runCardElimination=()=>{
     if(cardPhase==="eliminating")return;
-    const fs=friendsRef.current;
+    const fs=friendsRef.current.slice(0,12); // only first 12 are visualized
     if(fs.length<2){setFErr(T[langRef.current].eMin);return;}
     setFErr("");
     setCardPhase("eliminating");
@@ -984,6 +1060,10 @@ export default function App() {
       transition:transform 0.12s, box-shadow 0.12s;cursor:default;position:relative}
     .tag:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 rgba(0,0,0,0.5)}
     .tag-c{font-size:0.66rem;opacity:0.7;margin-left:2px;font-family:'IBM Plex Mono',monospace;font-weight:700}
+    .g-toggle{background:rgba(0,0,0,0.18);border:none;cursor:pointer;color:inherit;
+      font-size:0.95rem;line-height:1;padding:1px 5px;margin-right:3px;border-radius:3px;
+      opacity:0.85;transition:all 0.15s;font-weight:bold;display:inline-flex;align-items:center}
+    .g-toggle:hover{opacity:1;background:rgba(0,0,0,0.32);transform:scale(1.1)}
     .rm{background:none;border:none;cursor:pointer;color:inherit;font-size:1.15rem;line-height:1;
       opacity:0.55;padding:0 2px;transition:opacity 0.12s;font-weight:bold}
     .rm:hover{opacity:1}
@@ -1636,7 +1716,7 @@ export default function App() {
                 {/* 3D card stage */}
                 <div className="cards-stage" aria-live="polite">
                   <div className="cards-deck">
-                    {friends.map((f,i)=>{
+                    {friends.slice(0,12).map((f,i)=>{
                       const c=SEGS[i%SEGS.length];
                       const elimIdx=eliminated.indexOf(f);
                       const isEliminated=elimIdx>=0;
@@ -1704,7 +1784,7 @@ export default function App() {
                             <div className="card-accent" style={{background:c.bg,boxShadow:`0 0 14px ${c.bg}`}}/>
                             {/* Eliminated stamp */}
                             {isEliminated&&!isWinner&&(
-                              <div className="card-stamp">{t.cardsEliminated}</div>
+                              <div className="card-stamp">{lang==="pt"?gendered(t.cardsEliminated, getGender(f)):t.cardsEliminated}</div>
                             )}
                           </div>
                         </div>
@@ -1736,8 +1816,13 @@ export default function App() {
                 )}
 
                 {/* Status text below button */}
-                {cardPhase==="idle"&&friends.length>=2&&(
+                {cardPhase==="idle"&&friends.length>=2&&friends.length<=12&&(
                   <div className="cards-ready">{t.cardsReady}</div>
+                )}
+                {cardPhase==="idle"&&friends.length>12&&(
+                  <div className="cards-ready" style={{color:"#FF6B00"}}>
+                    ⚠ {t.cardsTooMany(12, friends.length-12)}
+                  </div>
                 )}
               </>
             )}
@@ -1754,12 +1839,19 @@ export default function App() {
                 {friends.map((f,i)=>{
                   const cnt=payCount[f]||0,crown=cnt>=3?"👑":cnt===2?"🏆":cnt===1?"💸":"";
                   const c=SEGS[i%SEGS.length];
+                  const g=getGender(f);
                   return(
                     <div key={i} className="tag" style={{
                       background:`linear-gradient(180deg, ${lighten(c.bg,0.1)}, ${c.bg})`,
                       color:c.fg,
                       boxShadow:`2px 2px 0 rgba(0,0,0,0.6), 0 0 14px ${c.bg}40`,
                     }}>
+                      <button className="g-toggle" onClick={()=>toggleGender(f)}
+                        aria-label={`Género: ${g==="F"?"feminino":"masculino"} (clica para mudar)`}
+                        title={lang==="pt"?"Clica para mudar género":"Click to change gender"}
+                        style={{color:c.fg}}>
+                        {g==="F"?"♀":"♂"}
+                      </button>
                       {crown&&<span>{crown}</span>}{f.toUpperCase()}
                       {cnt>0&&<span className="tag-c">×{cnt}</span>}
                       <button className="rm" onClick={()=>rmFriend(i)} aria-label="Remove">×</button>

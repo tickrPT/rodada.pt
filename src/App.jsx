@@ -485,14 +485,20 @@ export default function App() {
       grad.addColorStop(1,darken(bg,0.15));
       c.fillStyle=grad; c.fill();
       c.strokeStyle="rgba(0,0,0,0.65)"; c.lineWidth=2; c.stroke();
-      // name text
+      // name text — crisp stroke for legibility instead of blurry shadow
       c.save();
       c.translate(cx,cy); c.rotate(sa+arc/2);
       const fz=Math.max(10,Math.min(24,170/n));
       c.font=`700 ${fz}px Anton,sans-serif`;
-      c.fillStyle=fg; c.textAlign="right";
-      c.shadowColor=fg==="#000"?"rgba(255,255,255,0.4)":"rgba(0,0,0,0.5)"; c.shadowBlur=2;
-      c.fillText((fs[i].length>9?fs[i].slice(0,9)+"…":fs[i]).toUpperCase(),R-12,fz*0.36);
+      c.textAlign="right";
+      const txt=(fs[i].length>9?fs[i].slice(0,9)+"…":fs[i]).toUpperCase();
+      // Subtle outline that doesn't blur the letters
+      c.lineWidth=Math.max(2,fz*0.12);
+      c.strokeStyle=fg==="#000"?"rgba(255,255,255,0.35)":"rgba(0,0,0,0.55)";
+      c.lineJoin="round";
+      c.strokeText(txt,R-12,fz*0.36);
+      c.fillStyle=fg;
+      c.fillText(txt,R-12,fz*0.36);
       c.restore();
     }
 
@@ -728,11 +734,21 @@ export default function App() {
       if (displayName.length > 6) nameSize = 170;
       if (displayName.length > 9) nameSize = 140;
       c.font = `bold ${nameSize}px Anton, Impact, sans-serif`;
-      c.fillStyle = winnerColor;
+      // Soft ambient glow behind the text (drawn separately)
       c.shadowColor = winnerColor;
-      c.shadowBlur = 35;
+      c.shadowBlur = 60;
+      c.fillStyle = winnerColor + "30"; // 19% alpha so glow doesn't bleed into letters
       c.fillText(displayName.toUpperCase(), size/2, cardY + 320);
+      c.fillText(displayName.toUpperCase(), size/2, cardY + 320); // doubled for stronger glow
       c.shadowBlur = 0;
+      // Solid stroke outline for crisp definition
+      c.lineWidth = Math.max(4, nameSize * 0.04);
+      c.strokeStyle = "rgba(0,0,0,0.65)";
+      c.lineJoin = "round";
+      c.strokeText(displayName.toUpperCase(), size/2, cardY + 320);
+      // Crisp solid fill on top
+      c.fillStyle = winnerColor;
+      c.fillText(displayName.toUpperCase(), size/2, cardY + 320);
 
       // Underline accent
       const nameW = c.measureText(displayName.toUpperCase()).width;
@@ -1991,7 +2007,12 @@ export default function App() {
             boxShadow:`14px 14px 0 ${winner.bg}, 0 0 80px ${winner.bg}50`,
           }} onClick={e=>e.stopPropagation()}>
             <div className="wlabel">{t.pays}</div>
-            <div className="wname" style={{color:winner.bg,textShadow:`0 0 30px ${winner.bg}, 0 0 60px ${winner.bg}80`}}>
+            <div className="wname" style={{
+              color:winner.bg,
+              WebkitTextStroke:`1.5px rgba(0,0,0,0.55)`,
+              textShadow:`0 0 22px ${winner.bg}50, 0 2px 4px rgba(0,0,0,0.6)`,
+              filter:`drop-shadow(0 0 18px ${winner.bg}40)`,
+            }}>
               {winner.name.toUpperCase()}
             </div>
             <div className="wmsg">{winner.msg}</div>

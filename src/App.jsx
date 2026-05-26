@@ -62,7 +62,7 @@ const T = {
     sub:"Quem paga a próxima?", ph:"Nome do amigo...", add:"JUNTAR",
     spin:"GIRAR A RODA", spinning:"A GIRAR...",
     pays:"PAGA A RODADA!", again:"OUTRA VEZ",
-    share:"↗ PARTILHAR", shareResult:"📲 PARTILHAR RESULTADO", copied:"✓ COPIADO!",
+    share:"↗ PARTILHAR", shareResult:"📲 PARTILHAR RESULTADO", shareImage:"📸 GUARDAR IMAGEM", copied:"✓ COPIADO!",
     eMin:"Junta pelo menos 2 amigos!", eMax:"Máximo 20 amigos!", eDup:"Esse nome já está na roda!",
     tag:"GIRA · DECIDE · PAGA · REPETE", shame:"PATROCINADORES DA NOITE", toggle:"EN",
     testBtn:"🎯 TESTAR 100×",
@@ -115,7 +115,7 @@ const T = {
     sub:"Who's buying the round?", ph:"Friend's name...", add:"ADD",
     spin:"SPIN THE WHEEL", spinning:"SPINNING...",
     pays:"BUYS THE ROUND!", again:"AGAIN",
-    share:"↗ SHARE", shareResult:"📲 SHARE RESULT", copied:"✓ COPIED!",
+    share:"↗ SHARE", shareResult:"📲 SHARE RESULT", shareImage:"📸 SAVE IMAGE", copied:"✓ COPIED!",
     eMin:"Add at least 2 friends!", eMax:"Maximum 20 friends!", eDup:"That name is already on the wheel!",
     tag:"SPIN · DECIDE · PAY · REPEAT", shame:"TONIGHT'S SPONSORS", toggle:"PT",
     testBtn:"🎯 TEST 100×",
@@ -568,6 +568,155 @@ export default function App() {
         chi2, critical, isFair, allInRange:isFair, running:false
       });
     },50);
+  };
+
+  // ── SHAREABLE IMAGE GENERATION ──
+  // Generates a 1080x1080 PNG with branded winner card for social sharing.
+  // Returns a Blob, ready to use with navigator.share() or download fallback.
+  const generateShareImage = (winnerName, winnerColor, mode = "wheel") => {
+    return new Promise((resolve) => {
+      const size = 1080;
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const c = canvas.getContext("2d");
+
+      // ── Background: dark with atmospheric gradient ──
+      const bgGrad = c.createRadialGradient(size/2, size/2, 100, size/2, size/2, size);
+      bgGrad.addColorStop(0, "#0a0a0a");
+      bgGrad.addColorStop(0.6, "#040407");
+      bgGrad.addColorStop(1, "#000");
+      c.fillStyle = bgGrad;
+      c.fillRect(0, 0, size, size);
+
+      // Atmospheric glow in winner's color
+      const glow = c.createRadialGradient(size/2, size/2, 50, size/2, size/2, 600);
+      glow.addColorStop(0, winnerColor + "55");
+      glow.addColorStop(0.4, winnerColor + "22");
+      glow.addColorStop(1, "transparent");
+      c.fillStyle = glow;
+      c.fillRect(0, 0, size, size);
+
+      // Subtle grid lines
+      c.strokeStyle = "rgba(255,255,255,0.04)";
+      c.lineWidth = 1;
+      for (let i = 0; i < size; i += 60) {
+        c.beginPath(); c.moveTo(i, 0); c.lineTo(i, size); c.stroke();
+        c.beginPath(); c.moveTo(0, i); c.lineTo(size, i); c.stroke();
+      }
+
+      // ── Top brand bar ──
+      c.fillStyle = "#FFE500";
+      c.font = "bold 56px Anton, Impact, sans-serif";
+      c.textAlign = "center";
+      c.shadowColor = "rgba(255,229,0,0.5)";
+      c.shadowBlur = 20;
+      c.fillText("🍺 RODADA.PT", size/2, 130);
+      c.shadowBlur = 0;
+
+      // Tagline
+      c.fillStyle = "#888";
+      c.font = "500 28px 'IBM Plex Mono', monospace";
+      c.fillText(lang === "pt" ? "QUEM PAGA A RODADA?" : "WHO BUYS THE ROUND?", size/2, 180);
+
+      // ── Central card: brutalist style with offset shadow ──
+      const cardX = 90, cardY = 280, cardW = 900, cardH = 560;
+      // Offset shadow
+      c.fillStyle = winnerColor;
+      c.fillRect(cardX + 16, cardY + 16, cardW, cardH);
+      // Card body
+      const cardGrad = c.createLinearGradient(cardX, cardY, cardX, cardY + cardH);
+      cardGrad.addColorStop(0, "#1a1a1a");
+      cardGrad.addColorStop(1, "#000");
+      c.fillStyle = cardGrad;
+      c.fillRect(cardX, cardY, cardW, cardH);
+      // Card border
+      c.strokeStyle = winnerColor;
+      c.lineWidth = 6;
+      c.strokeRect(cardX, cardY, cardW, cardH);
+
+      // Color accent strip top of card
+      c.fillStyle = winnerColor;
+      c.fillRect(cardX, cardY, cardW, 18);
+
+      // ── "PAGA A RODADA" label ──
+      c.font = "bold 38px Anton, Impact, sans-serif";
+      c.fillStyle = "#aaa";
+      c.letterSpacing = "8px";
+      c.fillText(mode === "cards"
+        ? (lang === "pt" ? "PAGA O JANTAR" : "PAYS THE DINNER")
+        : (lang === "pt" ? "PAGA A RODADA" : "BUYS THE ROUND"),
+        size/2, cardY + 100);
+
+      // ── Winner name (BIG) ──
+      const displayName = winnerName.length > 12 ? winnerName.slice(0, 12) + "…" : winnerName;
+      // Auto-size based on name length
+      let nameSize = 200;
+      if (displayName.length > 6) nameSize = 170;
+      if (displayName.length > 9) nameSize = 140;
+      c.font = `bold ${nameSize}px Anton, Impact, sans-serif`;
+      c.fillStyle = winnerColor;
+      c.shadowColor = winnerColor;
+      c.shadowBlur = 35;
+      c.fillText(displayName.toUpperCase(), size/2, cardY + 320);
+      c.shadowBlur = 0;
+
+      // Underline accent
+      const nameW = c.measureText(displayName.toUpperCase()).width;
+      c.fillStyle = winnerColor;
+      c.fillRect(size/2 - nameW/2 - 30, cardY + 360, nameW + 60, 6);
+
+      // Beer emoji line (decorative)
+      c.font = "60px serif";
+      c.fillText("🍺 🍺 🍺", size/2, cardY + 470);
+
+      // ── Bottom: CTA ──
+      c.fillStyle = "#fff";
+      c.font = "bold 36px Anton, Impact, sans-serif";
+      c.fillText(lang === "pt"
+        ? "EXPERIMENTA TU →"
+        : "TRY IT YOURSELF →",
+        size/2, 920);
+
+      // Domain emphasized
+      c.fillStyle = "#FFE500";
+      c.font = "bold 64px Anton, Impact, sans-serif";
+      c.shadowColor = "rgba(255,229,0,0.6)";
+      c.shadowBlur = 20;
+      c.fillText("RODADA.PT", size/2, 1000);
+      c.shadowBlur = 0;
+
+      // Convert to blob
+      canvas.toBlob((blob) => resolve(blob), "image/png", 0.95);
+    });
+  };
+
+  // Share or download the generated image
+  const shareImage = async (winnerName, winnerColor, mode = "wheel") => {
+    try {
+      const blob = await generateShareImage(winnerName, winnerColor, mode);
+      if (!blob) return;
+      const file = new File([blob], `rodada-${winnerName.toLowerCase()}.png`, { type: "image/png" });
+      // Try native share with file (mobile)
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          text: T[lang].shareMsg(winnerName) + "\nhttps://rodada.pt",
+        });
+      } else {
+        // Desktop fallback: download
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `rodada-${winnerName.toLowerCase()}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    } catch (e) {
+      // User cancelled or error — silently ignore
+    }
   };
 
   const shareWinner=async()=>{
@@ -1261,6 +1410,15 @@ export default function App() {
       font-size:0.84rem;letter-spacing:0.1em;background:rgba(255,255,255,0.02);
       border:2px solid #fff;color:#fff;cursor:pointer;transition:all 0.15s;backdrop-filter:blur(6px)}
     .btn-ws:hover{background:#fff;color:#000;box-shadow:0 0 24px rgba(255,255,255,0.4)}
+    .btn-share-img{width:100%;padding:14px 0;margin-top:10px;font-family:Anton,sans-serif;font-weight:400;
+      font-size:0.98rem;letter-spacing:0.09em;background:linear-gradient(180deg,#FFF459,#FFE500);
+      color:#000;border:3px solid #000;cursor:pointer;transition:all 0.12s;
+      box-shadow:6px 6px 0 #000, 0 0 24px rgba(255,229,0,0.35);position:relative;overflow:hidden}
+    .btn-share-img::before{content:"";position:absolute;top:0;left:-100%;width:50%;height:100%;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,0.55),transparent);
+      animation:shi 3s ease-in-out infinite}
+    .btn-share-img:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 #000, 0 0 32px rgba(255,229,0,0.5)}
+    .btn-share-img:active{transform:translate(3px,3px);box-shadow:3px 3px 0 #000}
 
     /* ── CONFETTI ── */
     .sp{position:fixed;top:-55px;animation:dr linear forwards;z-index:200;pointer-events:none;user-select:none;
@@ -1566,6 +1724,9 @@ export default function App() {
                     <button className="btn-ws" onClick={shareCardWinner} style={{maxWidth:SZ,width:"100%"}}>
                       {t.shareResult}
                     </button>
+                    <button className="btn-share-img" onClick={()=>shareImage(cardWinner.name, cardWinner.bg, "cards")} style={{maxWidth:SZ,width:"100%"}}>
+                      {t.shareImage}
+                    </button>
                   </>
                 ):(
                   <button className="btn-spin" onClick={runCardElimination}
@@ -1763,6 +1924,9 @@ export default function App() {
               }} onClick={()=>setWinner(null)}>{t.again}</button>
               <button className="btn-ws" onClick={shareWinner}>{t.shareResult}</button>
             </div>
+            <button className="btn-share-img" onClick={()=>shareImage(winner.name, winner.bg, "wheel")}>
+              {t.shareImage}
+            </button>
           </div>
         </div>
       )}

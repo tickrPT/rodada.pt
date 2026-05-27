@@ -96,6 +96,7 @@ const T = {
     pCount:(n)=>`${n} participante${n!==1?"s":""}`,
     gInfo:(ng,ps)=>`${ng} grupo${ng!==1?"s":""} · ~${ps} por grupo`,
     footer:"Feito com 🍺 em Portugal",
+    guideLink:"Ver 10 jogos para decidir quem paga",
     // ── Card mode ──
     modeWheel:"🍺 Roleta",
     modeCards:"💳 Cartões",
@@ -150,6 +151,7 @@ const T = {
     pCount:(n)=>`${n} participant${n!==1?"s":""}`,
     gInfo:(ng,ps)=>`${ng} group${ng!==1?"s":""} · ~${ps} each`,
     footer:"Made with 🍺 in Portugal",
+    guideLink:"10 games to decide who pays",
     // ── Card mode ──
     modeWheel:"🍺 Wheel",
     modeCards:"💳 Cards",
@@ -1519,6 +1521,13 @@ export default function App() {
     .ftr{text-align:center;padding:24px 18px 28px;font-size:0.7rem;color:#3a3a3a;
       letter-spacing:0.14em;font-family:'IBM Plex Mono',monospace;font-weight:500;
       border-top:1px solid rgba(255,229,0,0.08)}
+    .ftr-link{display:inline-block;color:#888;text-decoration:none;padding:6px 14px;
+      margin-bottom:10px;font-size:0.72rem;letter-spacing:0.1em;
+      border:1px solid rgba(255,229,0,0.2);transition:all 0.18s;
+      background:rgba(255,229,0,0.02)}
+    .ftr-link:hover{color:#FFE500;border-color:#FFE500;background:rgba(255,229,0,0.06);
+      box-shadow:0 0 14px rgba(255,229,0,0.15)}
+    .ftr-credit{color:#3a3a3a;margin-top:4px}
 
     /* ════════════════════════════════════════════ */
     /* ═══════ CARD MODE — premium 3D cards ═══════ */
@@ -1997,7 +2006,10 @@ export default function App() {
         )}
 
         <div className="stripe"/>
-        <div className="ftr">{t.footer}  ·  RODADA.PT</div>
+        <div className="ftr">
+          <a href="/jogos-para-decidir.html" className="ftr-link">📖 {t.guideLink}</a>
+          <div className="ftr-credit">{t.footer}  ·  RODADA.PT</div>
+        </div>
       </div>
 
       {winner&&(

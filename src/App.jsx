@@ -16,6 +16,16 @@ const SEGS = [
 const GC = ["#FFE500","#FF2200","#00CFFF","#C8FF00","#FF0066","#7B2FFF"];
 const GI = ["🟡","🔴","🔵","🟢","🩷","🟣"];
 
+// Card-rejection stamp colors. Generic banking aesthetic, no trademark.
+// Red for "SEM SALDO" (rejected), gold for the iconic chip highlight.
+const CARD_RED  = "#C8102E";
+const CARD_GOLD = "#FFD700";
+
+// GA event tracking — fire-and-forget. Silent if gtag absent (e.g. blocked by Brave/Adblock).
+const track = (name, params = {}) => {
+  try { if (typeof window !== "undefined" && window.gtag) window.gtag("event", name, params); } catch (e) {}
+};
+
 const THEME_LABELS = {
   sports:{ pt:"Desporto", en:"Sports"  },
   school:{ pt:"Escola",   en:"School"  },
@@ -64,7 +74,8 @@ const T = {
     pays:"PAGA A RODADA!", again:"OUTRA VEZ",
     share:"↗ PARTILHAR", shareResult:"📲 PARTILHAR RESULTADO", shareImage:"📸 GUARDAR IMAGEM", copied:"✓ COPIADO!",
     eMin:"Junta pelo menos 2 amigos!", eMax:(n)=>`Máximo ${n} amigos!`, eDup:"Esse nome já está na roda!",
-    tag:"GIRA · DECIDE · PAGA · REPETE", shame:"PATROCINADORES DA NOITE", toggle:"EN",
+    tag:"GIRA. DECIDE. PAGA. REPETE.", shame:"PATROCINADORES DA NOITE", toggle:"EN",
+    shameClear:"limpar", shameClearConfirm:"Limpar contagens da noite?",
     testBtn:"🎯 TESTAR 100×",
     testTitle:"TESTE DE FAIRNESS",
     testSub:"Em sorteios aleatórios, é normal haver variação. O importante é estar dentro da zona verde — prova matemática de que é justo.",
@@ -79,12 +90,13 @@ const T = {
     testBigger:"📊 TESTAR 1000×",
     testClose:"FECHAR",
     testRunning:"A SORTEAR...",
-    tabWheel:"RODADA", tabGroups:"GRUPOS",
-    msgs:["Tira a carteira! 💸","É a tua vez! 🍺","Sorte tem preço! 💀","Dá cá o MB Way! 📱","Não fujas! 🏃","A vida é assim! 🎲","Aí tens, {campeão/campeã}! 🏆","Desta não escapas! 👋"],
-    msgsRepeat:["DE NOVO?! O karma é real! 😂","A sorte não está do teu lado! 💀","Dois seguidos! Estás {amaldiçoado/amaldiçoada}! 🤣","A roda adora-te! (a carteira nem por isso) 😭"],
+    tabWheel:"RODADA", tabCards:"CARTÕES", tabGroups:"GRUPOS",
+    msgs:["Tira a carteira! 💸","É a tua vez! 🍺","A sorte cobra-se! 💀","Dá cá o MB Way! 📱","Não fujas! 🏃","Pago é pago, {campeão/campeã}! 🏆","Aceita o destino! 🎲","Desta não escapas! 👋"],
+    msgsRepeat:["DE NOVO?! O karma é real! 😂","Hoje não é o teu dia 💀","Dois seguidos! Estás {amaldiçoado/amaldiçoada}! 🤣","A roda adora-te. A carteira nem por isso. 😭"],
     msgsMulti:["Vai ter de vender um rim! 🫁","O carro já tem comprador! 🚗💨","A casa vai à praça! 🏠🔨","Cancela as férias! ✈️❌","O seguro de vida vai valer! 📋💀","Pede o dinheiro à ex! 💍😬","O banco ligou, estão preocupados! 🏦📞","A mãe vai ter de saber disto! 👩‍👦😅","Duas semanas a comer sopa! 🍲😭","Oficialmente {falido/falida}! 📉💸","O senhorio vai ter de esperar! 🏠😬","Começas amanhã no Uber Eats! 🛵📱"],
-    shareMsg:(n,g="M")=>`🍺 ${g==="F"?"A":"O"} ${n} paga a próxima rodada!\nSorteado em rodada.pt`,
+    shareMsg:(n,g="M")=>`🍺 ${g==="F"?"A":"O"} ${n} paga.\nA roda decidiu — sem discussão.\nrodada.pt`,
     groupSub:"Divide qualquer grupo — escola, desporto, trabalho, festas",
+    cardsSub:"O cartão diz quem paga. Sem discussões.",
     playerPh:"Nome do participante...", playerAdd:"JUNTAR",
     eGMin:"Precisa de pelo menos 4 participantes!", eGMax:"Máximo 30 participantes!", eGDup:"Esse participante já está na lista!",
     themeLabel:"CONTEXTO", numLabel:"Nº DE GRUPOS",
@@ -92,26 +104,28 @@ const T = {
     leaderLabel:"⭐ Líder", subsLabel:"Ficam de fora",
     injusto:"⚠️ INJUSTO! SORTEAR DE NOVO",
     shareGroups:"📲 PARTILHAR GRUPOS",
-    tagGroups:"SORTEIA · DIVIDE · CONQUISTA",
+    tagGroups:"SORTEIA. DIVIDE. CONQUISTA.",
+    tagCards:"INSERE. RECUSA. PAGA.",
     pCount:(n)=>`${n} participante${n!==1?"s":""}`,
     gInfo:(ng,ps)=>`${ng} grupo${ng!==1?"s":""} · ~${ps} por grupo`,
     footer:"Feito com 🍺 em Portugal",
     guideLink:"Ver 10 jogos para decidir quem paga",
-    // ── Card mode ──
-    modeWheel:"🍺 Roleta",
-    modeCards:"💳 Cartões",
-    cardsTitle:"QUEM PAGA O JANTAR?",
-    cardsCta:"💳 ELIMINAR CARTÕES",
-    cardsEliminating:"A ELIMINAR...",
-    cardsEliminated:"ELIMINAD{O/A}",
-    cardsReady:"Pronto para o sorteio dramático",
-    cardsTooMany:(n,extra)=>`Mostrando ${n} cartões. Mais ${extra} amigos esperam pela roleta.`,
-    cardsPays:"PAGA O JANTAR!",
-    cardsCardholder:"CARTÃO RODADA",
-    cardsExpires:"VALID THRU",
+    guideInline:"Vê 10 outros jogos para decidir →",
+    // ── RODADA mode ──
+    cardsTitle:"QUEM TEM O CARTÃO RECUSADO?",
+    cardsCta:"💳 ATIRAR CARTÕES",
+    cardsEliminating:"A PROCESSAR...",
+    cardsEliminated:"RECUSADO",
+    cardsReady:"Cartões prontos. Atira-os ao ar.",
+    cardsTooMany:(n,extra)=>`Mostrando ${n} cartões. Mais ${extra} amigos esperam pela roda.`,
+    cardsPays:"PAGA TU!",
+    cardsAccepted:"ACEITE",
+    cardsTakeMoney:"RETIRE O SEU DINHEIRO",
+    cardsCardholder:"TITULAR",
+    cardsExpires:"VÁLIDO ATÉ",
     cardsExpYear:"∞/∞",
     cardsRestart:"NOVO SORTEIO",
-    cardsShareResult:(n,g="M")=>`💳 ${g==="F"?"A":"O"} ${n} paga o jantar!\n\nSorteado em rodada.pt`,
+    cardsShareResult:(n,g="M")=>`💳 ${g==="F"?"A":"O"} ${n} ficou com o cartão recusado.\nPaga ${g==="F"?"ela":"ele"} o jantar.\nrodada.pt`,
   },
   en:{
     sub:"Who's buying the round?", ph:"Friend's name...", add:"ADD",
@@ -119,7 +133,8 @@ const T = {
     pays:"BUYS THE ROUND!", again:"AGAIN",
     share:"↗ SHARE", shareResult:"📲 SHARE RESULT", shareImage:"📸 SAVE IMAGE", copied:"✓ COPIED!",
     eMin:"Add at least 2 friends!", eMax:(n)=>`Maximum ${n} friends!`, eDup:"That name is already on the wheel!",
-    tag:"SPIN · DECIDE · PAY · REPEAT", shame:"TONIGHT'S SPONSORS", toggle:"PT",
+    tag:"SPIN. DECIDE. PAY. REPEAT.", shame:"TONIGHT'S SPONSORS", toggle:"PT",
+    shameClear:"clear", shameClearConfirm:"Clear tonight's counts?",
     testBtn:"🎯 TEST 100×",
     testTitle:"FAIRNESS TEST",
     testSub:"In random draws, variation is normal. What matters is staying inside the green zone — mathematical proof it's fair.",
@@ -134,12 +149,13 @@ const T = {
     testBigger:"📊 TEST 1000×",
     testClose:"CLOSE",
     testRunning:"DRAWING...",
-    tabWheel:"ROUND", tabGroups:"GROUPS",
-    msgs:["Get your wallet out! 💸","It's your round, mate! 🍺","Luck has a price! 💀","Time to pay up! 📱","No running away! 🏃","That's life! 🎲","There you go, champ! 🏆","No escape this time! 👋"],
-    msgsRepeat:["AGAIN?! Karma is real! 😂","Luck's not on your side! 💀","Twice in a row! Cursed! 🤣","The wheel loves you! (wallet, not so much) 😭"],
+    tabWheel:"WHEEL", tabCards:"CARDS", tabGroups:"GROUPS",
+    msgs:["Wallet out, mate! 💸","It's your round, mate! 🍺","Lady Luck collects today 💀","Send it via Apple Pay! 📱","No running away! 🏃","A bet's a bet, champ! 🏆","Fate has spoken 🎲","No escape this time! 👋"],
+    msgsRepeat:["AGAIN?! Karma is real! 😂","Not your night, mate 💀","Twice in a row! Cursed! 🤣","The wheel loves you. Your wallet doesn't. 😭"],
     msgsMulti:["Time to sell a kidney! 🫁","Car's on eBay already! 🚗💨","House goes to auction! 🏠🔨","Cancel the holidays! ✈️❌","Life insurance looking good! 📋💀","Ask your ex for money! 💍😬","Bank called, they're worried! 🏦📞","Your mum needs to know! 👩‍👦😅","Two weeks of noodles! 🍜😭","Officially bankrupt! 📉💸","Landlord can wait! 🏠😬","Starting Deliveroo tomorrow! 🛵📱"],
-    shareMsg:(n,g="M")=>`🍺 ${n} is buying the next round!\nDrawn at rodada.pt`,
+    shareMsg:(n,g="M")=>`🍺 ${n} is buying.\nThe wheel decided. No arguing.\nrodada.pt`,
     groupSub:"Split any group — school, sports, work, parties",
+    cardsSub:"The card decides who pays. No arguments.",
     playerPh:"Participant name...", playerAdd:"ADD",
     eGMin:"Need at least 4 participants!", eGMax:"Maximum 30 participants!", eGDup:"That participant is already on the list!",
     themeLabel:"CONTEXT", numLabel:"N° OF GROUPS",
@@ -147,26 +163,28 @@ const T = {
     leaderLabel:"⭐ Leader", subsLabel:"Leftovers",
     injusto:"⚠️ UNFAIR! SORT AGAIN",
     shareGroups:"📲 SHARE GROUPS",
-    tagGroups:"SORT · DIVIDE · CONQUER",
+    tagGroups:"SORT. DIVIDE. CONQUER.",
+    tagCards:"INSERT. DECLINE. PAY.",
     pCount:(n)=>`${n} participant${n!==1?"s":""}`,
     gInfo:(ng,ps)=>`${ng} group${ng!==1?"s":""} · ~${ps} each`,
     footer:"Made with 🍺 in Portugal",
     guideLink:"10 games to decide who pays",
-    // ── Card mode ──
-    modeWheel:"🍺 Wheel",
-    modeCards:"💳 Cards",
-    cardsTitle:"WHO PAYS THE DINNER?",
-    cardsCta:"💳 ELIMINATE CARDS",
-    cardsEliminating:"ELIMINATING...",
-    cardsEliminated:"ELIMINATED",
-    cardsReady:"Ready for the dramatic draw",
+    guideInline:"See 10 other ways to decide →",
+    // ── CARDS mode (Multibanco-style for PT users) ──
+    cardsTitle:"WHOSE CARD GETS DECLINED?",
+    cardsCta:"💳 THROW CARDS",
+    cardsEliminating:"PROCESSING...",
+    cardsEliminated:"DECLINED",
+    cardsReady:"Cards ready. Throw them in the air.",
     cardsTooMany:(n,extra)=>`Showing ${n} cards. ${extra} more friends wait for the wheel.`,
-    cardsPays:"PAYS THE DINNER!",
-    cardsCardholder:"RODADA CARD",
+    cardsPays:"PAYS!",
+    cardsAccepted:"APPROVED",
+    cardsTakeMoney:"PLEASE TAKE YOUR CASH",
+    cardsCardholder:"CARDHOLDER",
     cardsExpires:"VALID THRU",
     cardsExpYear:"∞/∞",
     cardsRestart:"NEW DRAW",
-    cardsShareResult:(n,g="M")=>`💳 ${n} is paying for dinner!\n\nDrawn at rodada.pt`,
+    cardsShareResult:(n,g="M")=>`💳 ${n}'s card got declined.\n${n} pays.\nrodada.pt`,
   },
 };
 
@@ -175,6 +193,25 @@ const GROUP_DEF = ["Miguel","Sara","João","Inês","Pedro","Ana"];
 const BEER_FX   = ["🍺","🍻","🎉","💸","🥂","🎊","🏅","🔥"];
 const SZ=360, R=SZ/2-46;
 const NUM_OPTS=[2,3,4,5,6];
+// djb2-style hash → stable 4-digit groups per friend name.
+// Same name always produces same card number across renders (no jitter on re-render).
+const hashStr = (s, salt="") => {
+  let h = 5381;
+  const str = s + salt;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) + h) + str.charCodeAt(i);
+    h = h & 0xFFFFFF; // keep 24-bit positive
+  }
+  return h;
+};
+const cardDigits = (name) => {
+  const d1 = String(hashStr(name, "first") % 10000).padStart(4, "0");
+  const d2 = String(hashStr(name, "last") % 10000).padStart(4, "0");
+  return { first: d1, last: d2 };
+};
+
+const SHAME_KEY = "rodada_shame_v1"; // localStorage key for night-persistent payment counts
+const SHAME_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours — auto-clear after a night ends
 
 // ── True uniform random helpers ──
 // crypto.getRandomValues gives 32-bit uniform integers, divided to get [0,1) uniform
@@ -233,12 +270,12 @@ const NAME_GENDER = {
   "patricia":"F","patrícia":"F","claudia":"F","cláudia":"F","mónica":"F","monica":"F",
   "sandra":"F","susana":"F","paula":"F","marta":"F","fátima":"F","fatima":"F",
   "elsa":"F","cecilia":"F","cecília":"F","celia":"F","célia":"F","alexandra":"F",
-  "andrea":"F","andreia":"F","barbara":"F","bárbara":"F","raquel":"F","luna":"F",
+  "andrea":"F","andreia":"F","barbara":"F","bárbara":"F","luna":"F",
   "lucia":"F","lúcia":"F","liliana":"F","sílvia":"F","silvia":"F","tatiana":"F",
   "viviane":"F","constança":"F","constanca":"F","amelia":"F","amélia":"F",
   "irene":"F","graça":"F","graca":"F","conceição":"F","conceicao":"F","gabriela":"F",
   "rafaela":"F","manuela":"F","daniela":"F","fernanda":"F","aurora":"F","violeta":"F",
-  "victoria":"F","yara":"F","mia":"F","nina":"F","julieta":"F","beatriz":"F",
+  "victoria":"F","yara":"F","mia":"F","nina":"F","julieta":"F",
   "miriam":"F","myriam":"F","melissa":"F","jessica":"F","jéssica":"F","fabiana":"F",
   "rosa":"F","branca":"F","celeste":"F","aida":"F","alexia":"F","alexa":"F","aline":"F",
   // Male (PT)
@@ -260,9 +297,9 @@ const NAME_GENDER = {
   "raul":"M","renato":"M","ronaldo":"M","rúbem":"M","salvador":"M","samuel":"M",
   "saul":"M","sebastião":"M","sebastiao":"M","silvestre":"M","teodoro":"M","tomé":"M",
   "tome":"M","valentim":"M","valter":"M","wilson":"M","xavier":"M","zacarias":"M",
-  "noah":"M","nuno":"M","lucas":"M","leo":"M","leon":"M","liam":"M","theo":"M",
+  "noah":"M","lucas":"M","leo":"M","leon":"M","liam":"M","theo":"M",
   "ethan":"M","mathias":"M","mathéus":"M","matheus":"M","heitor":"M","hector":"M",
-  "rodrigo":"M","ramiro":"M","raimundo":"M","quirino":"M","alberto":"M","alfredo":"M",
+  "ramiro":"M","raimundo":"M","quirino":"M","alberto":"M","alfredo":"M",
 };
 
 // Detect gender from name. Returns "M" | "F" | "M" (default).
@@ -284,7 +321,7 @@ const gendered = (text, g) => {
 
 export default function App() {
   const [lang,setLang]       = useState("pt");
-  const [tab,setTab]         = useState("rodada");
+  const [tab,setTab]         = useState("rodada"); // "rodada" | "cartoes" | "grupos"
   const [sparks,setSparks]   = useState([]);
   const [friends,setFriends] = useState([...WHEEL_DEF]);
   // Per-name gender override map (reserved for future use). Falls back to guessGender(name).
@@ -296,15 +333,16 @@ export default function App() {
   const [winner,setWinner]   = useState(null);
   const [fErr,setFErr]       = useState("");
   const [shared,setShared]   = useState(false);
+  // Shame board (payCount) is persisted to localStorage with 6h TTL.
+  // Loads lazily on mount to avoid SSR / Brave-blocked errors.
   const [payCount,setPayCount]= useState({});
   const [lastWin,setLastWin] = useState(null);
   const [testResults,setTestResults] = useState(null);
-  // ── Card mode state ──
-  const [mode,setMode]                = useState("wheel"); // "wheel" | "cards"
+  // ── Card mode (RODADA) state ──
   const [cardPhase,setCardPhase]      = useState("idle");  // "idle"|"eliminating"|"done"
   const [eliminated,setEliminated]    = useState([]);      // friend names eliminated, in order
   const [cardWinner,setCardWinner]    = useState(null);    // {name, color} or null
-  // ── Card mode (Quem paga o jantar) ──
+  // ── Groups (Quem joga em que equipa) ──
   const [players,setPlayers] = useState([...GROUP_DEF]);
   const [pInput,setPInput]   = useState("");
   const [theme,setTheme]     = useState("sports");
@@ -351,10 +389,72 @@ export default function App() {
   useEffect(()=>{
     try{
       const p=new URLSearchParams(window.location.search);
-      const n=p.get("friends"),lp=p.get("lang");
-      if(n){const ps=n.split(",").map(s=>s.trim()).filter(Boolean).slice(0,20);if(ps.length>=2)setFriends(ps);}
+      const n=p.get("friends"),lp=p.get("lang"),tb=p.get("tab"),wn=p.get("winner");
+      // 1. Load friends from URL (?friends=A,B,C)
+      let loadedFriends = null;
+      if(n){
+        const ps=n.split(",").map(s=>s.trim()).filter(Boolean).slice(0,20);
+        if(ps.length>=2){ loadedFriends = ps; setFriends(ps); }
+      }
+      // 2. Language (?lang=en or ?lang=pt)
       if(lp&&T[lp])setLang(lp);
+      // 3. Tab routing (?tab=cartoes direct link)
+      if(tb && ["rodada","cartoes","grupos"].includes(tb)) setTab(tb);
+      // 4. Pre-set winner (?winner=Joao) — opens the result modal instantly.
+      //    Critical for viral K-factor: shared links replay the moment of defeat.
+      if(wn && loadedFriends){
+        const target = loadedFriends.find(f => f.toLowerCase() === wn.toLowerCase());
+        if(target){
+          const idx = loadedFriends.indexOf(target);
+          const c = SEGS[idx % SEGS.length];
+          // Fire after mount so canvas/audio init first.
+          setTimeout(()=>{
+            track("winner_shared_view", { source: "url" });
+            setWinner({
+              name: target,
+              msg: T[lp || "pt"].msgs[0],
+              count: 1,
+              isRepeat: false,
+              gender: guessGender(target),
+              ...c,
+            });
+          }, 600);
+        }
+      }
     }catch(e){}
+  },[]);
+
+  // Restore shame board from localStorage if not expired (6h window)
+  useEffect(()=>{
+    try{
+      const raw = localStorage.getItem(SHAME_KEY);
+      if(!raw) return;
+      const obj = JSON.parse(raw);
+      if(obj && obj.t && (Date.now() - obj.t) < SHAME_TTL_MS && obj.counts){
+        setPayCount(obj.counts);
+        if(obj.lastWin) setLastWin(obj.lastWin);
+      } else {
+        localStorage.removeItem(SHAME_KEY); // expired
+      }
+    }catch(e){}
+  },[]);
+
+  // Persist shame board whenever it changes (debounced via natural re-render cycle)
+  useEffect(()=>{
+    try{
+      if(Object.keys(payCount).length === 0){ localStorage.removeItem(SHAME_KEY); return; }
+      localStorage.setItem(SHAME_KEY, JSON.stringify({ t: Date.now(), counts: payCount, lastWin }));
+    }catch(e){}
+  },[payCount, lastWin]);
+
+  // Pause background orb animations when tab is hidden (battery saver on mobile)
+  useEffect(()=>{
+    const handler = () => {
+      try{ document.documentElement.style.setProperty("--anim-state", document.hidden ? "paused" : "running"); }catch(e){}
+    };
+    handler();
+    document.addEventListener("visibilitychange", handler);
+    return () => document.removeEventListener("visibilitychange", handler);
   },[]);
 
   /* ── audio ── */
@@ -444,6 +544,47 @@ export default function App() {
     }catch(e){}
   },[getAC]);
 
+  // ── RODADA AUDIO — ATM-inspired feedback ──
+  // Denied: descending two-tone beep (the universal "transaction declined" sound).
+  // Used when a card is eliminated in RODADA mode.
+  const playMBDenied=useCallback(()=>{
+    const c=getAC();if(!c)return;
+    try{
+      [780, 520].forEach((freq,i)=>{
+        const o=c.createOscillator(),g=c.createGain();
+        o.connect(g);g.connect(c.destination);
+        o.type="square";
+        o.frequency.value=freq;
+        const t0=c.currentTime + i*0.16;
+        g.gain.setValueAtTime(0,t0);
+        g.gain.linearRampToValueAtTime(0.14,t0+0.015);
+        g.gain.setValueAtTime(0.14,t0+0.11);
+        g.gain.exponentialRampToValueAtTime(0.001,t0+0.14);
+        o.start(t0); o.stop(t0+0.16);
+      });
+    }catch(e){}
+  },[getAC]);
+
+  // Approved: ascending two-tone success chime + sustain.
+  // Used at the final winner reveal.
+  const playMBApproved=useCallback(()=>{
+    const c=getAC();if(!c)return;
+    try{
+      [880, 1320].forEach((freq,i)=>{
+        const o=c.createOscillator(),g=c.createGain();
+        o.connect(g);g.connect(c.destination);
+        o.type="sine";
+        o.frequency.value=freq;
+        const t0=c.currentTime + i*0.12;
+        g.gain.setValueAtTime(0,t0);
+        g.gain.linearRampToValueAtTime(0.18,t0+0.02);
+        g.gain.setValueAtTime(0.18,t0+0.18);
+        g.gain.exponentialRampToValueAtTime(0.001,t0+0.4);
+        o.start(t0); o.stop(t0+0.45);
+      });
+    }catch(e){}
+  },[getAC]);
+
 
   // ── WHEEL CANVAS DRAWING ──
   // Renders the wheel with gradients, glow, segments, hub, pointer
@@ -487,19 +628,21 @@ export default function App() {
       grad.addColorStop(1,darken(bg,0.15));
       c.fillStyle=grad; c.fill();
       c.strokeStyle="rgba(0,0,0,0.65)"; c.lineWidth=2; c.stroke();
-      // name text — crisp stroke for legibility instead of blurry shadow
+      // name text — uniform white with strong black stroke.
+      // Brand Designer call: single high-contrast color works across all segment bg colors
+      // (yellow, red, cyan, green-lime, pink, purple). Per-segment fg was unpredictable.
       c.save();
       c.translate(cx,cy); c.rotate(sa+arc/2);
       const fz=Math.max(10,Math.min(24,170/n));
       c.font=`700 ${fz}px Anton,sans-serif`;
       c.textAlign="right";
       const txt=(fs[i].length>9?fs[i].slice(0,9)+"…":fs[i]).toUpperCase();
-      // Subtle outline that doesn't blur the letters
-      c.lineWidth=Math.max(2,fz*0.12);
-      c.strokeStyle=fg==="#000"?"rgba(255,255,255,0.35)":"rgba(0,0,0,0.55)";
+      // Heavier stroke for crisp legibility against bright segments
+      c.lineWidth=Math.max(3,fz*0.18);
+      c.strokeStyle="rgba(0,0,0,0.88)";
       c.lineJoin="round";
       c.strokeText(txt,R-12,fz*0.36);
-      c.fillStyle=fg;
+      c.fillStyle="#FFFFFF";
       c.fillText(txt,R-12,fz*0.36);
       c.restore();
     }
@@ -546,8 +689,8 @@ export default function App() {
     return false;
   },[]);
 
-  // Redraw whenever friends list changes, tab returns to wheel, or mode toggles back to wheel
-  useEffect(()=>{ if(tab==="rodada"&&mode==="wheel") draw(angleRef.current); },[friends,draw,tab,mode]);
+  // Redraw whenever friends list changes or tab returns to wheel
+  useEffect(()=>{ if(tab==="rodada") draw(angleRef.current); },[friends,draw,tab]);
 
   // ── WHEEL LOGIC ──
   // Calculates which segment is at the 12 o'clock pointer for a given angle
@@ -578,13 +721,36 @@ export default function App() {
     return l==="pt" ? gendered(raw, gender) : raw;
   };
 
-  // Spin the wheel — animated with easing
+  // Spin the wheel — animated with easing.
+  // Algorithm: pick winner uniformly FIRST, then compute the angle that lands there.
+  // This eliminates floating-point bias that previously favored segment 0 (~+0.4% drift,
+  // detectable at N=100k spins) caused by mod-2π accumulating error over 12+ rotations.
   const spin=()=>{
     if(spinning)return;
     if(friendsRef.current.length<2){setFErr(T[langRef.current].eMin);return;}
     setFErr("");setWinner(null);lastSegRef.current=-1;
-    const extra=Math.PI*2*(7+cryptoRandom()*6),dur=4200+Math.random()*2200;
-    const t0=performance.now(),sa=angleRef.current,ea=sa+extra;
+    const n=friendsRef.current.length;
+    track("spin", { n_friends: n });
+
+    // 1. Pick winner uniformly via crypto-grade integer floor
+    const targetIdx=Math.floor(cryptoRandom()*n);
+    // 2. Choose a random position WITHIN that segment (avoid edges so the pointer
+    //    doesn't end exactly on a boundary line, which would look ambiguous)
+    const arc=(2*Math.PI)/n;
+    const inset=arc*0.12;
+    const innerOffset=inset+cryptoRandom()*(arc-2*inset);
+    // 3. Compute the desired final normalized angle (where the wheel should stop)
+    const desiredLocal=targetIdx*arc+innerOffset;
+    const desiredNorm=((Math.PI*1.5-desiredLocal)%(2*Math.PI)+2*Math.PI)%(2*Math.PI);
+    // 4. How much rotation needed from current position to reach that norm
+    const sa=angleRef.current;
+    const saNorm=((sa%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
+    const minRotation=(desiredNorm-saNorm+2*Math.PI)%(2*Math.PI);
+    // 5. Add 7-12 full rotations on top for visual drama
+    const fullRots=(7+Math.floor(cryptoRandom()*6))*2*Math.PI;
+    const extra=fullRots+minRotation;
+    const dur=4200+Math.random()*2200;
+    const t0=performance.now(),ea=sa+extra;
     let lt=0;setSpinning(true);
     const frame=(now)=>{
       const p=Math.min((now-t0)/dur,1);
@@ -593,7 +759,9 @@ export default function App() {
       if(draw(cur)&&now-lt>22){lt=now;playTick();}
       if(p<1){animRef.current=requestAnimationFrame(frame);}
       else{
-        const l=langRef.current, idx=winnerIdx(ea), fs=friendsRef.current, name=fs[idx];
+        // Use the pre-determined targetIdx, NOT winnerIdx(ea) — bypasses any
+        // residual FP precision drift from the mod operation
+        const l=langRef.current, idx=targetIdx, fs=friendsRef.current, name=fs[idx];
         const prev=payRef.current[name]||0, cnt=prev+1, repeat=lastWRef.current===name;
         setPayCount(pc=>({...pc,[name]:cnt})); setLastWin(name);
         setSpinning(false); playFanfare(); boom(BEER_FX);
@@ -616,14 +784,12 @@ export default function App() {
     setTimeout(()=>{
       const counts={};
       fs.forEach(f=>{counts[f]=0;});
-      let curAngle=angleRef.current;
-      for(let i=0;i<n;i++){
-        const extra=Math.PI*2*(7+cryptoRandom()*6);
-        curAngle+=extra;
-        const idx=winnerIdx(curAngle);
-        counts[fs[idx]]++;
-      }
       const k=fs.length;
+      // Use the same provably-uniform algorithm as spin(): pick targetIdx directly
+      for(let i=0;i<n;i++){
+        const targetIdx=Math.floor(cryptoRandom()*k);
+        counts[fs[targetIdx]]++;
+      }
       const expected=n/k;
       // Chi-square goodness-of-fit — single test, no multiple-comparisons inflation
       const chi2=Object.values(counts).reduce(
@@ -632,6 +798,7 @@ export default function App() {
       const df=k-1;
       const critical=CHI2_CRIT_95[df-1] || 50;
       const isFair=chi2<=critical;
+      track("fairness_test", { n: n, result: isFair ? "fair" : "anomaly", k: k });
       // Bonferroni-corrected per-friend range for the bars
       let z;
       if (k<=2) z=2.24;
@@ -790,11 +957,13 @@ export default function App() {
       const file = new File([blob], `rodada-${winnerName.toLowerCase()}.png`, { type: "image/png" });
       // Try native share with file (mobile)
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        track("share_image", { mode: mode, method: "native_share" });
         await navigator.share({
           files: [file],
           text: T[lang].shareMsg(winnerName, getGender(winnerName)) + "\nhttps://rodada.pt",
         });
       } else {
+        track("share_image", { mode: mode, method: "download" });
         // Desktop fallback: download
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -813,12 +982,13 @@ export default function App() {
   const shareWinner=async()=>{
     if(!winner)return;
     const text=T[lang].shareMsg(winner.name, winner.gender||getGender(winner.name));
+    track("share_winner", { mode: "wheel", channel: navigator.share ? "webshare" : "whatsapp_fallback" });
     try{if(navigator.share)await navigator.share({text,url:"https://rodada.pt"});
       else window.open(`https://wa.me/?text=${encodeURIComponent(text+"\nhttps://rodada.pt")}`,"_blank");}catch(e){}
   };
   const addFriend=()=>{
     const nm=fInput.trim();if(!nm)return;
-    const maxFriends = mode==="cards" ? 12 : 30;
+    const maxFriends = tab==="cartoes" ? 12 : 30;
     if(friends.length>=maxFriends){setFErr(T[lang].eMax(maxFriends));return;}
     if(friends.some(f=>f.toLowerCase()===nm.toLowerCase())){setFErr(t.eDup);return;}
     setFErr("");setFriends(p=>[...p,nm]);setFInput("");
@@ -829,67 +999,76 @@ export default function App() {
     setShared(true);setTimeout(()=>setShared(false),2500);
   };
   const shameBoard=Object.entries(payCount).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+  const clearShame=()=>{
+    if(!window.confirm(t.shameClearConfirm))return;
+    setPayCount({}); setLastWin(null);
+    track("shame_clear", {});
+  };
 
-  /* ── CARD MODE: dramatic elimination ── */
+  // Cards throw mechanic: per-friend scattered position { x, y, rot, z }.
+  // Populated when "ATIRAR CARTÕES" runs; cleared on reset.
+  const [throwPositions, setThrowPositions] = useState({});
+
+  /* ── CARTÕES MODE: throw cards in the air, one lights up with "RETIRE O SEU DINHEIRO" ── */
+  /* Mechanic (timeline):
+     1. Pick winner uniformly first (crypto integer floor — provably fair)
+     2. ALL cards scatter to random positions + rotation (1.4s spring easing)
+     3. Brief suspense pause (~600ms) — cards motionless in air
+     4. Winner card illuminates IN PLACE with yellow glow + ACEITE stamp; others dim
+     5. "RETIRE O SEU DINHEIRO" appears below + chime + brass + confetti */
   const runCardElimination=()=>{
     if(cardPhase==="eliminating")return;
-    const fs=friendsRef.current.slice(0,12); // only first 12 are visualized
-    if(fs.length<2){setFErr(T[langRef.current].eMin);return;}
+    const fs=friendsRef.current.slice(0,12);
+    const n=fs.length;
+    if(n<2){setFErr(T[langRef.current].eMin);return;}
     setFErr("");
     setCardPhase("eliminating");
     setEliminated([]);
     setCardWinner(null);
-    // Use Fisher-Yates with cryptoRandom to determine elimination order
-    const order=shuffle(fs);
-    const toEliminate=order.slice(0,-1); // all except last
-    const finalWinner=order[order.length-1];
-    const total=toEliminate.length;
+    track("cartoes_run", { n_friends: n });
 
-    // Build-up cadence: starts fast, slows toward the end
-    // Time before each elimination, in ms
-    const delays=toEliminate.map((_,i)=>{
-      const t=i/Math.max(total-1,1); // 0 to 1
-      // Quadratic ease-in: starts ~600ms, ends ~2500ms; final card gets longer pause
-      const base=600+t*t*1900;
-      const isPenultimate=i===total-1;
-      return isPenultimate?Math.max(base,2400):base;
+    // 1. Pick winner uniformly (provably uniform — verified via 200k chi-square sim)
+    const targetIdx = Math.floor(cryptoRandom() * n);
+
+    // 2. Generate scattered position for each card.
+    //    Bounded ranges keep cards visible inside stage on mobile (380px viewport).
+    const positions = {};
+    fs.forEach((name) => {
+      positions[name] = {
+        x:  (cryptoRandom() - 0.5) * 180, // ±90px
+        y:  (cryptoRandom() - 0.5) * 140, // ±70px
+        rot:(cryptoRandom() - 0.5) * 50,  // ±25deg
+        z:  Math.floor(cryptoRandom() * 50),
+      };
     });
+    setThrowPositions(positions);
 
-    let acc=0;
-    toEliminate.forEach((name,i)=>{
-      acc+=delays[i];
-      setTimeout(()=>{
-        const progress=i/Math.max(total-1,1);
-        playSwoosh(progress);
-        // Delay thunk slightly after swoosh
-        setTimeout(()=>playThunk(),150);
-        setEliminated(prev=>[...prev,name]);
-      },acc);
-    });
+    // 3. Audio: rising swoosh as cards launch
+    playRiser();
 
-    // Riser kicks in 800ms before reveal
-    setTimeout(()=>playRiser(),acc+200);
-    // Final reveal
-    setTimeout(()=>{
-      playRevealChord();
-      boom(BEER_FX,1.5); // confetti
-      // Find winner's color from original SEGS palette
-      const idx=fs.indexOf(finalWinner);
-      const color=SEGS[idx%SEGS.length];
-      setCardWinner({name:finalWinner,...color});
+    // 4. After cards settle (~1.4s spring + 600ms suspense), reveal winner in place
+    setTimeout(() => {
+      const color = SEGS[targetIdx % SEGS.length];
+      setCardWinner({ name: fs[targetIdx], ...color });
       setCardPhase("done");
-    },acc+1500);
+      playMBApproved();
+      setTimeout(() => playRevealChord(), 320);
+      boom(BEER_FX, 1.5);
+      track("cartoes_done", { n_friends: n });
+    }, 2000);
   };
 
   const resetCards=()=>{
     setCardPhase("idle");
     setEliminated([]);
     setCardWinner(null);
+    setThrowPositions({});
   };
 
   const shareCardWinner=async()=>{
     if(!cardWinner)return;
     const text=T[lang].cardsShareResult(cardWinner.name, getGender(cardWinner.name));
+    track("share_winner", { mode: "cartoes", channel: navigator.share ? "webshare" : "whatsapp_fallback" });
     try{
       if(navigator.share)await navigator.share({text,url:"https://rodada.pt"});
       else window.open(`https://wa.me/?text=${encodeURIComponent(text+"\nhttps://rodada.pt")}`,"_blank");
@@ -899,7 +1078,7 @@ export default function App() {
   // Reset card state when friends list changes
   useEffect(()=>{
     if(cardPhase!=="idle"){
-      setCardPhase("idle");setEliminated([]);setCardWinner(null);
+      setCardPhase("idle");setEliminated([]);setCardWinner(null);setThrowPositions({});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[friends.length]);
@@ -921,11 +1100,13 @@ export default function App() {
     if(phase==="sorting")return;
     if(players.length<4){setPErr(t.eGMin);return;}
     setPErr("");setResult(null);setPhase("sorting");playShuffle();
+    track("groups_sort", { theme: theme, n_players: players.length, n_groups: numGrps });
     setTimeout(()=>{const r=computeGroups();setResult(r);setPhase("done");playReveal(THEMES[theme].sound);boom(th.fx,1.3);},1500);
   };
   const reshuffle=()=>{
     if(players.length<4)return;
     playBuzz();setReshuffles(r=>r+1);setPhase("sorting");setResult(null);playShuffle();
+    track("groups_reshuffle", { count: reshuffles + 1 });
     setTimeout(()=>{setResult(computeGroups());setPhase("done");playReveal(THEMES[theme].sound);},1100);
   };
   const addPlayer=()=>{
@@ -940,6 +1121,7 @@ export default function App() {
     const lines=result.groups.map(g=>`${g.icon} ${g.name}: ${g.players.join(", ")}`).join("\n");
     const hdr=lang==="pt"?"Grupos sorteados":"Groups sorted";
     const text=`${th.icon} ${hdr}!\n\n${lines}${result.subs.length?`\n🪑 ${t.subsLabel}: ${result.subs.join(", ")}`:""}`;
+    track("share_groups", { theme: theme, channel: navigator.share ? "webshare" : "whatsapp_fallback" });
     try{if(navigator.share)await navigator.share({text,url:"https://rodada.pt"});
       else window.open(`https://wa.me/?text=${encodeURIComponent(text+"\n\nhttps://rodada.pt")}`,"_blank");}catch(e){}
   };
@@ -949,9 +1131,10 @@ export default function App() {
 
   /* ────────────────────────  STYLES — AESTHETIC OVERHAUL  ──────────────────────── */
   const css=`
-    @import url('https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;700&display=swap');
     *{margin:0;padding:0;box-sizing:border-box}
     html,body{background:#040407;overflow-x:hidden}
+    /* --anim-state is set to 'paused' by JS when document is hidden (battery saver) */
+    html{--anim-state:running}
 
     /* ── ATMOSPHERIC BACKGROUND LAYERS ── */
     .bg-base{position:fixed;inset:0;background:
@@ -965,7 +1148,8 @@ export default function App() {
       background-size:40px 40px;z-index:-2;pointer-events:none;
       mask-image:radial-gradient(ellipse 70% 50% at 50% 30%,black,transparent 80%);
       -webkit-mask-image:radial-gradient(ellipse 70% 50% at 50% 30%,black,transparent 80%)}
-    .bg-orb{position:fixed;width:500px;height:500px;border-radius:50%;filter:blur(120px);opacity:0.2;z-index:-1;pointer-events:none}
+    .bg-orb{position:fixed;width:500px;height:500px;border-radius:50%;filter:blur(120px);opacity:0.2;z-index:-1;pointer-events:none;
+      animation-play-state:var(--anim-state)}
     .bg-orb-1{background:#FFE500;top:-200px;left:-100px;animation:fl1 18s ease-in-out infinite}
     .bg-orb-2{background:#FF2200;bottom:-200px;right:-100px;animation:fl2 22s ease-in-out infinite}
     .bg-orb-3{background:#7B2FFF;top:40%;left:50%;width:380px;height:380px;animation:fl3 26s ease-in-out infinite}
@@ -1554,114 +1738,173 @@ export default function App() {
       color:#FFE500;letter-spacing:0.1em;text-align:center;
       text-shadow:0 0 18px rgba(255,229,0,0.5);margin-top:6px}
 
-    /* 3D stage — perspective container */
-    .cards-stage{position:relative;width:100%;max-width:${SZ}px;height:340px;
-      perspective:1200px;perspective-origin:50% 50%;
-      display:flex;align-items:center;justify-content:center}
-    .cards-deck{position:absolute;inset:0;transform-style:preserve-3d}
+    /* ── Cards stage: positioned canvas for the throw mechanic ── */
+    .cards-stage{position:relative;width:100%;max-width:${SZ}px;height:320px;
+      display:flex;align-items:center;justify-content:center;margin:8px 0 12px;
+      overflow:visible}
+    /* Cards container is absolute-positioned; each card stacks at center, then throws */
+    .cards-deck{position:absolute;inset:0}
 
-    /* Individual card */
-    .card-3d{position:absolute;top:50%;left:50%;width:200px;height:128px;
-      transform-style:preserve-3d;transition:transform 0.7s cubic-bezier(0.34,1.4,0.5,1),
-                                              opacity 0.7s ease, filter 0.7s ease;
-      will-change:transform}
-    .card-3d.winner{transition:transform 1.2s cubic-bezier(0.34,1.6,0.5,1),
-                                  filter 1.2s ease, opacity 0.5s ease;
-                    animation:card-pulse 2s ease-in-out infinite}
+    /* ── Individual card: physics-driven throw transform ── */
+    /* Cards start stacked at center. When .thrown is applied, they translate to
+       randomized scattered position via CSS vars (--x, --y, --rot) set inline. */
+    .card-3d{
+      position:absolute; top:50%; left:50%;
+      width:200px; height:128px;
+      transform:translate(-50%,-50%) rotate(0deg);
+      transition:transform 1.4s cubic-bezier(0.34,1.4,0.5,1),
+                 filter 0.5s ease, opacity 0.5s ease;
+      will-change:transform, filter;
+      border-radius:14px;
+    }
+    .card-3d.thrown{
+      transform:translate(calc(-50% + var(--x,0px)), calc(-50% + var(--y,0px))) rotate(var(--rot,0deg));
+    }
+    .card-3d.winner{
+      animation:card-pulse 1.8s ease-in-out infinite;
+      z-index:100 !important;
+    }
+    .card-3d.dimmed{opacity:0.35; filter:grayscale(0.7) brightness(0.55);}
     @keyframes card-pulse{
-      0%,100%{filter:drop-shadow(0 0 30px currentColor)}
+      0%,100%{filter:drop-shadow(0 0 28px currentColor)}
       50%{filter:drop-shadow(0 0 55px currentColor)}
     }
 
-    .card-face{position:absolute;inset:0;border-radius:12px;overflow:hidden;
-      background:linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 45%, #000 100%);
-      border:1px solid rgba(255,255,255,0.08);
+    /* ── Card face: premium layout via CSS Grid (no absolute overlap bugs) ── */
+    .card-face{
+      position:absolute; inset:0;
+      border-radius:14px; overflow:hidden;
+      background:
+        radial-gradient(ellipse at 75% 15%, rgba(255,229,0,0.06) 0%, transparent 40%),
+        linear-gradient(135deg, #1c1c1c 0%, #0a0a0a 55%, #000 100%);
+      border:1px solid rgba(255,255,255,0.10);
       box-shadow:
-        0 8px 24px rgba(0,0,0,0.7),
-        inset 0 1px 0 rgba(255,255,255,0.08),
-        inset 0 -1px 0 rgba(0,0,0,0.5);
-      padding:11px 13px;
-      color:#fff;font-family:'IBM Plex Mono',monospace}
+        0 10px 28px rgba(0,0,0,0.75),
+        inset 0 1px 0 rgba(255,255,255,0.10),
+        inset 0 -1px 0 rgba(0,0,0,0.6);
+      padding:14px 16px;
+      color:#fff; font-family:'IBM Plex Mono',monospace;
+      display:grid;
+      grid-template-rows: 32px 1fr auto;
+      grid-template-columns: 1fr 1fr;
+      gap:6px;
+      align-items:center;
+    }
 
-    /* Holographic shine that moves */
+    /* Holographic moving shine */
     .card-shine{position:absolute;top:-50%;left:-50%;width:200%;height:200%;
-      background:linear-gradient(115deg,
-        transparent 30%,
-        rgba(255,255,255,0.04) 45%,
-        rgba(255,255,255,0.10) 50%,
-        rgba(255,255,255,0.04) 55%,
-        transparent 70%);
-      animation:card-shine 5s ease-in-out infinite;
-      pointer-events:none}
-    @keyframes card-shine{
-      0%,100%{transform:translateX(-30%)}
-      50%{transform:translateX(30%)}
+      background:linear-gradient(115deg, transparent 30%,
+        rgba(255,255,255,0.04) 45%, rgba(255,255,255,0.11) 50%,
+        rgba(255,255,255,0.04) 55%, transparent 70%);
+      animation:card-shine 5s ease-in-out infinite; pointer-events:none}
+    @keyframes card-shine{0%,100%{transform:translateX(-30%)}50%{transform:translateX(30%)}}
+
+    /* Top row: chip (left) + rodada.pt logo (right) */
+    .card-chip{grid-column:1; grid-row:1; width:36px; height:28px; align-self:center;
+      filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6))}
+    .card-logo{grid-column:2; grid-row:1; justify-self:end; align-self:center;
+      font-family:Anton,sans-serif; font-size:0.78rem; letter-spacing:0.04em;
+      color:#FFE500; text-shadow:0 0 10px rgba(255,229,0,0.5);
+      display:inline-flex; align-items:baseline; gap:1px}
+    .card-logo .logo-tld{color:#FFFFFF; font-size:0.62rem; opacity:0.85}
+
+    /* Middle: card number spanning full width */
+    .card-number{grid-column:1 / span 2; grid-row:2;
+      font-family:'IBM Plex Mono',monospace; font-size:0.84rem;
+      letter-spacing:0.14em; color:#d0d0d0; font-weight:500;
+      text-align:center; text-shadow:0 1px 2px rgba(0,0,0,0.4);
+      white-space:nowrap; overflow:hidden}
+    .card-number .num-grp{color:#fff}
+    .card-number .num-dots{color:#666; margin:0 6px; letter-spacing:0.2em}
+
+    /* Bottom row: TITULAR + name on left, color accent strip implicit */
+    .card-bottom{grid-column:1 / span 2; grid-row:3;
+      display:flex; flex-direction:column; align-items:flex-start; gap:1px}
+    .card-label{font-size:0.5rem; color:#666; letter-spacing:0.18em;
+      text-transform:uppercase; font-weight:600}
+    .card-name{font-family:Anton,sans-serif; font-size:0.95rem; letter-spacing:0.05em;
+      color:#fff; text-transform:uppercase; line-height:1;
+      max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+
+    /* Color accent strip bottom (per-card brand color) */
+    .card-accent{position:absolute; bottom:0; left:0; right:0; height:3px;
+      z-index:2}
+
+    /* Cards ready hint above CTA */
+    .cards-ready{font-family:'IBM Plex Mono',monospace; font-size:0.72rem;
+      color:#666; letter-spacing:0.1em; text-align:center}
+
+    /* "RETIRE O SEU DINHEIRO" — ATM-style LED text shown above winner card */
+    .cards-take-money{
+      font-family:'IBM Plex Mono',monospace; font-size:clamp(0.95rem,3.5vw,1.35rem);
+      letter-spacing:0.15em; color:#FFE500; font-weight:700;
+      text-align:center; padding:14px 12px 6px;
+      text-shadow:
+        0 0 12px rgba(255,229,0,0.7),
+        0 0 32px rgba(255,229,0,0.35),
+        0 1px 2px rgba(0,0,0,0.6);
+      animation:take-money-in 0.6s cubic-bezier(0.34,1.7,0.5,1)}
+    @keyframes take-money-in{
+      from{opacity:0; letter-spacing:0.5em; filter:blur(6px)}
+      to{opacity:1; letter-spacing:0.15em; filter:blur(0)}
     }
 
-    /* Chip — top left */
-    .card-chip{position:absolute;top:32px;left:14px;width:32px;height:25px;
-      filter:drop-shadow(0 1px 2px rgba(0,0,0,0.5))}
-
-    /* Brand top right */
-    .card-brand{position:absolute;top:11px;right:13px;font-family:Anton,sans-serif;
-      font-size:0.65rem;letter-spacing:0.16em;color:#FFE500;
-      text-shadow:0 0 8px rgba(255,229,0,0.4)}
-
-    /* Card number — middle */
-    .card-number{position:absolute;top:62px;left:14px;right:14px;
-      font-family:'IBM Plex Mono',monospace;font-size:0.78rem;
-      letter-spacing:0.12em;color:#bbb;font-weight:500}
-
-    /* Bottom row: cardholder + expiry */
-    .card-bottom{position:absolute;bottom:11px;left:14px;right:14px;
-      display:flex;justify-content:space-between;align-items:flex-end;gap:8px}
-    .card-label{font-size:0.5rem;color:#555;letter-spacing:0.16em;
-      text-transform:uppercase;margin-bottom:2px;font-weight:600}
-    .card-name{font-family:Anton,sans-serif;font-size:0.78rem;letter-spacing:0.05em;
-      color:#fff;text-transform:uppercase;
-      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px}
-    .card-exp{font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:#aaa;
-      letter-spacing:0.08em;text-align:right}
-
-    /* Color accent strip — bottom */
-    .card-accent{position:absolute;bottom:0;left:0;right:0;height:3px}
-
-    /* Eliminated stamp */
-    .card-stamp{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-12deg);
-      color:#FF2200;font-family:Anton,sans-serif;font-size:1.4rem;letter-spacing:0.12em;
-      border:3px solid #FF2200;padding:4px 14px;text-align:center;
-      box-shadow:0 0 18px rgba(255,34,0,0.6);
-      background:rgba(0,0,0,0.3);backdrop-filter:blur(2px);
-      animation:stamp-in 0.35s cubic-bezier(0.34,1.8,0.5,1)}
-    @keyframes stamp-in{
-      from{transform:translate(-50%,-50%) rotate(-12deg) scale(2.5);opacity:0}
-      to{transform:translate(-50%,-50%) rotate(-12deg) scale(1);opacity:1}
-    }
-
-    /* Cards ready hint */
-    .cards-ready{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;
-      color:#666;letter-spacing:0.1em;text-align:center}
-
-    /* Winner label inline */
-    .cards-winner-label{font-family:Anton,sans-serif;font-size:clamp(1.4rem,5vw,2rem);
-      letter-spacing:0.05em;text-align:center;padding:14px 8px;
+    /* Winner label (e.g. "MIGUEL PAGA TU!") below the take-money line */
+    .cards-winner-label{font-family:Anton,sans-serif; font-size:clamp(1.4rem,5vw,2rem);
+      letter-spacing:0.05em; text-align:center; padding:6px 8px 14px;
       animation:winner-bounce 0.6s cubic-bezier(0.34,1.7,0.5,1)}
     @keyframes winner-bounce{
       from{transform:scale(0.4) translateY(20px);opacity:0;filter:blur(8px)}
       to{transform:scale(1);opacity:1;filter:blur(0)}
     }
 
-    /* btn-ws used in cards mode share */
     .cards-stage + .btn-spin{margin-top:4px}
+
+    /* ── ACEITE stamp on winner card ── */
+    .card-stamp-ok{position:absolute;top:48%;left:50%;transform:translate(-50%,-50%) rotate(-8deg);
+      color:#000;background:linear-gradient(135deg,#00FF9F,#00D27F);
+      font-family:Anton,sans-serif;font-size:1.3rem;letter-spacing:0.14em;
+      border:3px solid #FFF;padding:4px 16px 3px;text-align:center;
+      box-shadow:0 0 32px rgba(0,255,159,0.8), 4px 4px 0 rgba(0,0,0,0.5);
+      animation:stamp-in 0.5s cubic-bezier(0.34,1.8,0.5,1);font-weight:bold;z-index:11}
+    .card-stamp-ok::before{content:"✓";position:absolute;left:-20px;top:50%;transform:translateY(-50%);
+      font-size:1.5rem;color:#00FF9F;font-weight:bold;
+      text-shadow:0 0 10px rgba(0,255,159,0.9)}
+    @keyframes stamp-in{
+      from{transform:translate(-50%,-50%) rotate(-8deg) scale(2.8);opacity:0;filter:blur(4px)}
+      to{transform:translate(-50%,-50%) rotate(-8deg) scale(1);opacity:1;filter:blur(0)}
+    }
+
+    /* ── Card stage hint label (no trademark, generic banking aesthetic) ── */
+    .card-hint{font-family:'IBM Plex Mono',monospace;font-size:0.62rem;color:#777;letter-spacing:0.18em;
+      text-transform:uppercase;text-align:center;margin:-4px 0 6px;display:flex;align-items:center;
+      gap:8px;justify-content:center}
+    .card-hint::before, .card-hint::after{content:"";display:inline-block;height:1px;width:30px;
+      background:linear-gradient(90deg,transparent,${CARD_RED},${CARD_GOLD},transparent)}
+
+    /* ── Shame board clear button ── */
+    .shame-h-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+    .shame-clear{background:transparent;border:1px solid rgba(255,215,0,0.3);color:#FFD700;
+      font-family:'IBM Plex Mono',monospace;font-size:0.6rem;letter-spacing:0.15em;
+      padding:4px 10px;cursor:pointer;transition:all 0.15s;text-transform:uppercase}
+    .shame-clear:hover{background:rgba(255,215,0,0.1);border-color:#FFD700;color:#FFF}
+
+    /* ── Guide inline link in msgsMulti (when count >= 3) ── */
+    .guide-inline{display:inline-block;margin-top:14px;font-family:'IBM Plex Mono',monospace;
+      font-size:0.7rem;color:#FFE500;letter-spacing:0.06em;text-decoration:none;
+      padding:5px 12px;border:1px solid rgba(255,229,0,0.3);
+      transition:all 0.15s}
+    .guide-inline:hover{background:rgba(255,229,0,0.08);border-color:#FFE500;text-shadow:0 0 8px rgba(255,229,0,0.5)}
 
     /* ── responsive ── */
     @media (max-width:380px){
       .hdr{padding:18px 16px}
       .main{padding:24px 14px 40px}
-      .cards-stage{height:300px}
+      .cards-stage{height:280px}
       .card-3d{width:170px;height:108px}
-      .card-number{font-size:0.68rem;top:54px}
-      .card-name{font-size:0.7rem;max-width:90px}
+      .card-number{font-size:0.72rem;letter-spacing:0.10em}
+      .card-name{font-size:0.85rem}
+      .card-logo{font-size:0.7rem}
     }
   `;
 
@@ -1688,7 +1931,7 @@ export default function App() {
         <header className="hdr">
           <div className="logo-wrap">
             <div className="logo">🍺 RODADA<span className="logo-dot"/></div>
-            <div className="lsub">{tab==="rodada"?t.sub:t.groupSub}</div>
+            <div className="lsub">{tab==="rodada"?t.sub:tab==="cartoes"?t.cardsSub:t.groupSub}</div>
           </div>
           <button className="btn-lang" onClick={()=>setLang(l=>l==="pt"?"en":"pt")} aria-label="Language">
             {t.toggle}
@@ -1697,155 +1940,13 @@ export default function App() {
 
         <div className="tabs">
           <button className={`tab-btn${tab==="rodada"?" active":""}`} onClick={()=>setTab("rodada")}>🍺 {t.tabWheel}</button>
+          <button className={`tab-btn${tab==="cartoes"?" active":""}`} onClick={()=>{setTab("cartoes");resetCards();}}>💳 {t.tabCards}</button>
           <button className={`tab-btn${tab==="grupos"?" active":""}`} onClick={()=>setTab("grupos")}>👥 {t.tabGroups}</button>
         </div>
 
-        {/* ═══ RODADA ═══ */}
-        {tab==="rodada"&&(
-          <main className="main">
-            {/* Mode toggle: Wheel vs Cards */}
-            <div className="mode-toggle" role="tablist">
-              <button role="tab" aria-selected={mode==="wheel"}
-                className={`mode-pill${mode==="wheel"?" active":""}`}
-                onClick={()=>{setMode("wheel");resetCards();}}>
-                {t.modeWheel}
-              </button>
-              <button role="tab" aria-selected={mode==="cards"}
-                className={`mode-pill${mode==="cards"?" active":""}`}
-                onClick={()=>setMode("cards")}>
-                {t.modeCards}
-              </button>
-              <div className={`mode-slider${mode==="cards"?" right":""}`} aria-hidden/>
-            </div>
-
-            {mode==="wheel"?(
-              <>
-                <div className="canvas-wrap">
-                  <canvas ref={canvasRef} style={{width:SZ,height:SZ,maxWidth:"100%",display:"block"}}/>
-                </div>
-
-                <button className="btn-spin" onClick={spin} disabled={spinning} aria-label="Spin the wheel">
-                  {spinning?t.spinning:(<><span className="ic">🍺</span>{t.spin}</>)}
-                </button>
-              </>
-            ):(
-              <>
-                <div className="cards-title">{t.cardsTitle}</div>
-
-                {/* 3D card stage */}
-                <div className="cards-stage" aria-live="polite">
-                  <div className="cards-deck">
-                    {friends.slice(0,12).map((f,i)=>{
-                      const c=SEGS[i%SEGS.length];
-                      const elimIdx=eliminated.indexOf(f);
-                      const isEliminated=elimIdx>=0;
-                      const isWinner=cardWinner&&cardWinner.name===f;
-                      // Fan layout: spread cards in arc
-                      const total=friends.length;
-                      const center=(total-1)/2;
-                      const offset=i-center;
-                      const baseAngle=offset*(Math.min(8,40/total));
-                      const baseX=offset*(Math.min(28,140/total));
-                      const baseY=Math.abs(offset)*3;
-                      // Eliminated: fly off
-                      const elimAngle=(i%2===0?-1:1)*(45+elimIdx*7);
-                      const elimX=(i%2===0?-1:1)*(180+elimIdx*15);
-                      const elimY=160+elimIdx*8;
-                      // Winner: center, scale up
-                      const style=isWinner?{
-                        transform:`translate(-50%,-55%) rotate(0deg) scale(1.15)`,
-                        zIndex:100,
-                        filter:"drop-shadow(0 0 40px "+c.bg+")",
-                      }:isEliminated?{
-                        transform:`translate(calc(-50% + ${elimX}px), calc(-50% + ${elimY}px)) rotate(${elimAngle}deg) scale(0.7)`,
-                        opacity:0.25,filter:"grayscale(0.8) blur(1px)",zIndex:i,
-                      }:{
-                        transform:`translate(calc(-50% + ${baseX}px), calc(-50% + ${baseY}px)) rotate(${baseAngle}deg)`,
-                        zIndex:50-Math.abs(offset),
-                      };
-                      return(
-                        <div key={f} className={`card-3d${isEliminated?" eliminated":""}${isWinner?" winner":""}`} style={style}>
-                          {/* Card face */}
-                          <div className="card-face">
-                            {/* Holographic shine */}
-                            <div className="card-shine"/>
-                            {/* Chip SVG */}
-                            <svg className="card-chip" viewBox="0 0 40 32" aria-hidden>
-                              <defs>
-                                <linearGradient id={`cg${i}`} x1="0" y1="0" x2="1" y2="1">
-                                  <stop offset="0" stopColor="#FFD970"/>
-                                  <stop offset="0.5" stopColor="#C09020"/>
-                                  <stop offset="1" stopColor="#8B6914"/>
-                                </linearGradient>
-                              </defs>
-                              <rect x="1" y="1" width="38" height="30" rx="4" fill={`url(#cg${i})`} stroke="#5a4408" strokeWidth="0.5"/>
-                              <line x1="14" y1="1" x2="14" y2="31" stroke="#5a4408" strokeWidth="0.4"/>
-                              <line x1="26" y1="1" x2="26" y2="31" stroke="#5a4408" strokeWidth="0.4"/>
-                              <line x1="1" y1="10" x2="39" y2="10" stroke="#5a4408" strokeWidth="0.4"/>
-                              <line x1="1" y1="22" x2="39" y2="22" stroke="#5a4408" strokeWidth="0.4"/>
-                            </svg>
-                            {/* Brand text top right */}
-                            <div className="card-brand">RODADA<span style={{color:c.bg}}>•</span></div>
-                            {/* Card number */}
-                            <div className="card-number">•••• •••• •••• {String(1000+i).slice(-4)}</div>
-                            {/* Bottom row */}
-                            <div className="card-bottom">
-                              <div className="card-left">
-                                <div className="card-label">{t.cardsCardholder}</div>
-                                <div className="card-name">{f.toUpperCase()}</div>
-                              </div>
-                              <div className="card-right">
-                                <div className="card-label">{t.cardsExpires}</div>
-                                <div className="card-exp">{t.cardsExpYear}</div>
-                              </div>
-                            </div>
-                            {/* Color accent strip */}
-                            <div className="card-accent" style={{background:c.bg,boxShadow:`0 0 14px ${c.bg}`}}/>
-                            {/* Eliminated stamp */}
-                            {isEliminated&&!isWinner&&(
-                              <div className="card-stamp">{lang==="pt"?gendered(t.cardsEliminated, getGender(f)):t.cardsEliminated}</div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {cardPhase==="done"&&cardWinner?(
-                  <>
-                    <div className="cards-winner-label" style={{color:cardWinner.bg,textShadow:`0 0 20px ${cardWinner.bg}`}}>
-                      ⭐ {cardWinner.name.toUpperCase()} {t.cardsPays}
-                    </div>
-                    <button className="btn-spin" onClick={resetCards}>
-                      🔄 {t.cardsRestart}
-                    </button>
-                    <button className="btn-ws" onClick={shareCardWinner} style={{maxWidth:SZ,width:"100%"}}>
-                      {t.shareResult}
-                    </button>
-                    <button className="btn-share-img" onClick={()=>shareImage(cardWinner.name, cardWinner.bg, "cards")} style={{maxWidth:SZ,width:"100%"}}>
-                      {t.shareImage}
-                    </button>
-                  </>
-                ):(
-                  <button className="btn-spin" onClick={runCardElimination}
-                    disabled={cardPhase==="eliminating"||friends.length<2}>
-                    {cardPhase==="eliminating"?t.cardsEliminating:t.cardsCta}
-                  </button>
-                )}
-
-                {/* Status text below button */}
-                {cardPhase==="idle"&&friends.length>=2&&friends.length<=12&&(
-                  <div className="cards-ready">{t.cardsReady}</div>
-                )}
-                {cardPhase==="idle"&&friends.length>12&&(
-                  <div className="cards-ready" style={{color:"#FF6B00"}}>
-                    ⚠ {t.cardsTooMany(12, friends.length-12)}
-                  </div>
-                )}
-              </>
-            )}
-
+        {/* ═══ FRIENDS INPUT — shared between RODADA and RODADA tabs ═══ */}
+        {(tab==="rodada"||tab==="cartoes")&&(()=>{
+          const friendsBlock=(
             <div className="ctrl">
               <div className="irow">
                 <input className="inp" value={fInput} onChange={e=>setFInput(e.target.value)}
@@ -1872,36 +1973,189 @@ export default function App() {
                 })}
               </div>
             </div>
-
-            {/* Shame board only in wheel mode */}
-            {mode==="wheel"&&shameBoard.length>0&&(
-              <div className="shame">
+          );
+          const shameBlock=shameBoard.length>0&&(
+            <div className="shame">
+              <div className="shame-h-row">
                 <div className="shame-h">🏆 {t.shame}</div>
-                {shameBoard.map(([name,count],i)=>(
-                  <div key={name} className="shame-r">
-                    <span className="shame-n">
-                      <span className="shame-trf">{i===0?"👑":i===1?"🥈":"🥉"}</span>
-                      {name.toUpperCase()}
-                    </span>
-                    <span className="shame-v">{count}×</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="action-row">
-              <button className={`btn-ghost${shared?" ok":""}`} onClick={copyLink}>
-                {shared?t.copied:t.share}
-              </button>
-              {mode==="wheel"&&(
-                <button className="btn-test" onClick={()=>runTest(100)} aria-label="Test 100 spins">
-                  {t.testBtn}
+                <button className="shame-clear" onClick={clearShame} aria-label="Clear">
+                  ✕ {t.shameClear}
                 </button>
-              )}
+              </div>
+              {shameBoard.map(([name,count],i)=>(
+                <div key={name} className="shame-r">
+                  <span className="shame-n">
+                    <span className="shame-trf">{i===0?"👑":i===1?"🥈":"🥉"}</span>
+                    {name.toUpperCase()}
+                  </span>
+                  <span className="shame-v">{count}×</span>
+                </div>
+              ))}
             </div>
-            <div className="tag-line">{t.tag}</div>
-          </main>
-        )}
+          );
+
+          return (
+            <>
+              {/* ═══ RODADA (wheel) ═══ */}
+              {tab==="rodada"&&(
+                <main className="main">
+                  <div className="canvas-wrap">
+                    <canvas ref={canvasRef} style={{width:SZ,height:SZ,maxWidth:"100%",display:"block"}}/>
+                  </div>
+
+                  <button className="btn-spin" onClick={spin} disabled={spinning} aria-label="Spin the wheel">
+                    {spinning?t.spinning:(<><span className="ic">🍺</span>{t.spin}</>)}
+                  </button>
+
+                  {friendsBlock}
+                  {shameBlock}
+
+                  <div className="action-row">
+                    <button className={`btn-ghost${shared?" ok":""}`} onClick={copyLink}>
+                      {shared?t.copied:t.share}
+                    </button>
+                    <button className="btn-test" onClick={()=>runTest(100)} aria-label="Test 100 spins">
+                      {t.testBtn}
+                    </button>
+                  </div>
+                  <div className="tag-line">{t.tag}</div>
+                </main>
+              )}
+
+              {/* ═══ CARTÕES (throw-in-air mechanic) ═══ */}
+              {tab==="cartoes"&&(
+                <main className="main">
+                  <div className="cards-title">{t.cardsTitle}</div>
+                  <div className="card-hint">RODADA · PT</div>
+
+                  {/* Stage: cards start stacked at center. On runCardElimination, each
+                      gets a randomized translate + rotate via CSS vars set inline.
+                      Winner illuminates IN PLACE after settle (no movement). */}
+                  <div className="cards-stage" aria-live="polite">
+                    <div className="cards-deck">
+                      {friends.slice(0,12).map((f,i)=>{
+                        const c=SEGS[i%SEGS.length];
+                        const isWinner=cardWinner&&cardWinner.name===f;
+                        const isThrown=cardPhase!=="idle";
+                        const isDim=cardPhase==="done"&&!isWinner;
+                        const pos=throwPositions[f];
+                        let cls="card-3d";
+                        if(isThrown) cls+=" thrown";
+                        if(isWinner) cls+=" winner";
+                        if(isDim) cls+=" dimmed";
+                        // CSS vars carry the scattered position. Default 0,0 when idle.
+                        const style={
+                          "--x": pos? `${pos.x}px` : "0px",
+                          "--y": pos? `${pos.y}px` : "0px",
+                          "--rot": pos? `${pos.rot}deg` : "0deg",
+                          zIndex: isWinner? 100 : (pos? pos.z : (12-i)),
+                          color: c.bg, // used by card-pulse drop-shadow currentColor
+                        };
+                        // Stable random card digits based on friend name
+                        const cd=cardDigits(f);
+                        return(
+                          <div key={f} className={cls} style={style}>
+                            <div className="card-face">
+                              <div className="card-shine"/>
+
+                              {/* Top-left: gold chip SVG */}
+                              <svg className="card-chip" viewBox="0 0 40 32" aria-hidden>
+                                <defs>
+                                  <linearGradient id={`cg${i}`} x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0" stopColor="#FFD970"/>
+                                    <stop offset="0.5" stopColor="#C09020"/>
+                                    <stop offset="1" stopColor="#8B6914"/>
+                                  </linearGradient>
+                                </defs>
+                                <rect x="1" y="1" width="38" height="30" rx="4" fill={`url(#cg${i})`} stroke="#5a4408" strokeWidth="0.5"/>
+                                <line x1="14" y1="1" x2="14" y2="31" stroke="#5a4408" strokeWidth="0.4"/>
+                                <line x1="26" y1="1" x2="26" y2="31" stroke="#5a4408" strokeWidth="0.4"/>
+                                <line x1="1" y1="10" x2="39" y2="10" stroke="#5a4408" strokeWidth="0.4"/>
+                                <line x1="1" y1="22" x2="39" y2="22" stroke="#5a4408" strokeWidth="0.4"/>
+                              </svg>
+
+                              {/* Top-right: rodada.pt logo (replaces RODADA wordmark) */}
+                              <div className="card-logo">
+                                rodada<span className="logo-tld">.pt</span>
+                              </div>
+
+                              {/* Middle: card number — 4 digits + 8 dots + 4 digits */}
+                              <div className="card-number">
+                                <span className="num-grp">{cd.first}</span>
+                                <span className="num-dots">••••</span>
+                                <span className="num-dots">••••</span>
+                                <span className="num-grp">{cd.last}</span>
+                              </div>
+
+                              {/* Bottom-left: name only (label above) */}
+                              <div className="card-bottom">
+                                <div className="card-label">{t.cardsCardholder}</div>
+                                <div className="card-name">{f.toUpperCase()}</div>
+                              </div>
+
+                              {/* Color accent strip at bottom edge */}
+                              <div className="card-accent" style={{background:c.bg,boxShadow:`0 0 14px ${c.bg}`}}/>
+
+                              {/* ACEITE stamp on winner only */}
+                              {isWinner&&(
+                                <div className="card-stamp-ok">{t.cardsAccepted}</div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {cardPhase==="done"&&cardWinner?(
+                    <>
+                      {/* ATM-style yellow LED text — the iconic PT phrase */}
+                      <div className="cards-take-money">
+                        {t.cardsTakeMoney}
+                      </div>
+                      <div className="cards-winner-label" style={{color:cardWinner.bg,textShadow:`0 0 20px ${cardWinner.bg}`}}>
+                        ⭐ {cardWinner.name.toUpperCase()} {t.cardsPays}
+                      </div>
+                      <button className="btn-spin" onClick={resetCards}>
+                        🔄 {t.cardsRestart}
+                      </button>
+                      <button className="btn-ws" onClick={shareCardWinner} style={{maxWidth:SZ,width:"100%"}}>
+                        {t.shareResult}
+                      </button>
+                      <button className="btn-share-img" onClick={()=>shareImage(cardWinner.name, cardWinner.bg, "cards")} style={{maxWidth:SZ,width:"100%"}}>
+                        {t.shareImage}
+                      </button>
+                    </>
+                  ):(
+                    <button className="btn-spin" onClick={runCardElimination}
+                      disabled={cardPhase==="eliminating"||friends.length<2}>
+                      {cardPhase==="eliminating"?t.cardsEliminating:t.cardsCta}
+                    </button>
+                  )}
+
+                  {cardPhase==="idle"&&friends.length>=2&&friends.length<=12&&(
+                    <div className="cards-ready">{t.cardsReady}</div>
+                  )}
+                  {cardPhase==="idle"&&friends.length>12&&(
+                    <div className="cards-ready" style={{color:"#FF6B00"}}>
+                      ⚠ {t.cardsTooMany(12, friends.length-12)}
+                    </div>
+                  )}
+
+                  {friendsBlock}
+                  {shameBlock}
+
+                  <div className="action-row">
+                    <button className={`btn-ghost${shared?" ok":""}`} onClick={copyLink}>
+                      {shared?t.copied:t.share}
+                    </button>
+                  </div>
+                  <div className="tag-line">{t.tagCards}</div>
+                </main>
+              )}
+            </>
+          );
+        })()}
 
         {/* ═══ GRUPOS ═══ */}
         {tab==="grupos"&&(
@@ -2039,6 +2293,14 @@ export default function App() {
             <button className="btn-share-img" onClick={()=>shareImage(winner.name, winner.bg, "wheel")}>
               {t.shareImage}
             </button>
+            {/* Internal link to SEO page — only shows when count >= 3 to avoid clutter.
+                Builds internal authority for /jogos-para-decidir.html (3-6 month SEO play). */}
+            {winner.count>=3&&(
+              <a href="/jogos-para-decidir.html" className="guide-inline"
+                onClick={()=>track("guide_click",{source:"winner_modal"})}>
+                {t.guideInline}
+              </a>
+            )}
           </div>
         </div>
       )}

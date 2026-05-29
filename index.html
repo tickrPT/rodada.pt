@@ -5,21 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>Rodada.pt — Quem paga a próxima?</title>
-    <meta name="description" content="Roleta para decidir quem paga a rodada de cervejas. Sorteia equipas e grupos de trabalho." />
+    <meta name="description" content="Sorteador grátis em PT-PT para decidir quem paga a rodada de cervejas, o jantar ou divide equipas. Sem app, sem login. Rola a roleta ou usa o Multibanco." />
+
+    <!-- Language alternates — tells Google the same page serves PT and EN audiences -->
+    <link rel="alternate" hreflang="pt" href="https://rodada.pt/?lang=pt" />
+    <link rel="alternate" hreflang="en" href="https://rodada.pt/?lang=en" />
+    <link rel="alternate" hreflang="x-default" href="https://rodada.pt/" />
+    <link rel="canonical" href="https://rodada.pt/" />
 
     <!-- Open Graph (WhatsApp, Facebook, LinkedIn) -->
     <meta property="og:title" content="🍺 Rodada.pt — Quem paga a próxima?" />
-    <meta property="og:description" content="Gira a roda e decide quem paga. Também sorteia equipas." />
+    <meta property="og:description" content="Gira a roda, insere o cartão Multibanco, divide os grupos. Sem discussão." />
     <meta property="og:url" content="https://rodada.pt" />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://rodada.pt/og.png" />
     <meta property="og:locale" content="pt_PT" />
+    <meta property="og:locale:alternate" content="en_GB" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="🍺 Rodada.pt" />
-    <meta name="twitter:description" content="Gira a roda e decide quem paga." />
+    <meta name="twitter:description" content="Gira a roda. O cartão decide. Sem discussão." />
     <meta name="twitter:image" content="https://rodada.pt/og.png" />
+
+    <!-- Structured data: WebApplication schema. Helps Google understand this is an interactive tool. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Rodada.pt",
+      "url": "https://rodada.pt",
+      "description": "Sorteador para decidir quem paga a rodada de cervejas e dividir equipas",
+      "applicationCategory": "EntertainmentApplication",
+      "operatingSystem": "Any",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+      "inLanguage": ["pt-PT", "en-GB"]
+    }
+    </script>
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
@@ -29,15 +51,24 @@
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@400;700&display=swap" as="style" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@400;700&display=swap" />
 
-      <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQHLGXLG07"></script>
+    <!-- Google Analytics — gtag function is global so App.jsx can fire events via window.gtag() -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQHLGXLG07"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-      gtag('config', 'G-BQHLGXLG07');
+      gtag('config', 'G-BQHLGXLG07', {
+        // Anonymize IP for GDPR compliance and to keep AdSense reviewers happy
+        anonymize_ip: true,
+        // Track page_view automatically; custom events fire from App.jsx via window.gtag
+        send_page_view: true
+      });
     </script>
+
+    <!-- Google AdSense — once approved, enable Auto Ads in AdSense dashboard.
+         Auto Ads inject slots automatically. No manual <ins> blocks needed in SPA. -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4528031766044460" crossorigin="anonymous"></script>
-    </head>
+  </head>
   <body style="margin:0;background:#040407;">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>

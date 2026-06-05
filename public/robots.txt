@@ -1,0 +1,16 @@
+# rodada.pt — open to all crawlers
+User-agent: *
+Allow: /
+
+# AdSense bot (explicit)
+User-agent: Mediapartners-Google
+Allow: /
+
+# AI/LLM bots — allow read (good for visibility)
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+Sitemap: https://rodada.pt/sitemap.xml

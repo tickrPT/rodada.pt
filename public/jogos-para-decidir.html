@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>10 Jogos para Decidir Quem Paga a Conta — Rodada.pt</title>
+<meta name="description" content="Par ou ímpar, cara ou coroa, pedra-papel-tesoura e mais 7 jogos clássicos para decidir quem paga a rodada de cervejas, o jantar ou a conta entre amigos. Com regras claras e alternativas para grupos.">
+
+<!-- Open Graph -->
+<meta property="og:title" content="🍺 10 Jogos para Decidir Quem Paga a Conta">
+<meta property="og:description" content="Par ou ímpar, cara ou coroa, palitinhos e mais. Regras de todos os jogos clássicos portugueses para decidir quem paga.">
+<meta property="og:url" content="https://rodada.pt/jogos-para-decidir.html">
+<meta property="og:type" content="article">
+<meta property="og:image" content="https://rodada.pt/og.png">
+<meta property="og:locale" content="pt_PT">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="🍺 10 Jogos para Decidir Quem Paga a Conta">
+<meta name="twitter:description" content="Par ou ímpar, cara ou coroa, palitinhos e mais.">
+<meta name="twitter:image" content="https://rodada.pt/og.png">
+
+<link rel="canonical" href="https://rodada.pt/jogos-para-decidir.html">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@400;700&display=swap">
+
+<!-- Schema.org Article markup for SEO -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "10 Jogos para Decidir Quem Paga a Conta",
+  "description": "Guia completo dos jogos tradicionais portugueses para sortear quem paga: par ou ímpar, cara ou coroa, palitinhos, pedra-papel-tesoura, e mais 6 alternativas com regras.",
+  "image": "https://rodada.pt/og.png",
+  "author": {
+    "@type": "Organization",
+    "name": "Rodada.pt"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Rodada.pt",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://rodada.pt/og.png"
+    }
+  },
+  "datePublished": "2026-05-26",
+  "dateModified": "2026-05-26",
+  "mainEntityOfPage": "https://rodada.pt/jogos-para-decidir.html"
+}
+</script>
+
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#040407;color:#e5e5e5;font-family:'IBM Plex Mono',monospace;line-height:1.7;
+       overflow-x:hidden}
+  .bg-orb{position:fixed;border-radius:50%;filter:blur(120px);opacity:0.18;pointer-events:none;z-index:0}
+  .bg-orb-1{top:-100px;left:-100px;width:400px;height:400px;background:#FFE500}
+  .bg-orb-2{bottom:-100px;right:-100px;width:400px;height:400px;background:#FF2200}
+
+  /* Top brand bar */
+  .top-bar{position:relative;z-index:2;padding:18px 24px;text-align:center;
+           border-bottom:2px solid rgba(255,229,0,0.15);background:rgba(0,0,0,0.4);backdrop-filter:blur(8px)}
+  .top-bar a{text-decoration:none;display:inline-flex;align-items:center;gap:10px;
+             font-family:Anton,sans-serif;font-size:1.5rem;letter-spacing:0.08em;color:#FFE500;
+             text-shadow:0 0 14px rgba(255,229,0,0.4)}
+  .top-bar a:hover{text-shadow:0 0 22px rgba(255,229,0,0.7)}
+
+  /* Main container */
+  .container{position:relative;z-index:2;max-width:760px;margin:0 auto;padding:40px 24px 80px}
+
+  /* Hero */
+  .hero-label{font-family:'IBM Plex Mono',monospace;font-size:0.75rem;color:#888;
+              letter-spacing:0.3em;text-transform:uppercase;margin-bottom:14px}
+  h1{font-family:Anton,sans-serif;font-size:clamp(2rem,7vw,3.5rem);line-height:1.05;
+     letter-spacing:0.02em;color:#fff;margin-bottom:20px;
+     -webkit-text-stroke:1px rgba(0,0,0,0.4);
+     text-shadow:0 0 30px rgba(255,229,0,0.15)}
+  h1 .accent{color:#FFE500;text-shadow:0 0 18px rgba(255,229,0,0.4);
+             -webkit-text-stroke:1.5px rgba(0,0,0,0.6)}
+  .intro{font-size:1.05rem;color:#ccc;margin-bottom:36px;line-height:1.75}
+
+  /* Featured CTA early in article */
+  .featured-cta{display:block;background:linear-gradient(135deg, rgba(255,229,0,0.08), rgba(255,229,0,0.02));
+                border:2px solid #FFE500;padding:24px 26px;margin:36px 0;text-decoration:none;color:inherit;
+                box-shadow:6px 6px 0 rgba(255,229,0,0.3), 0 0 36px rgba(255,229,0,0.12);
+                transition:transform 0.15s, box-shadow 0.15s;position:relative;overflow:hidden}
+  .featured-cta::before{content:"";position:absolute;top:0;left:-100%;width:50%;height:100%;
+                         background:linear-gradient(90deg,transparent,rgba(255,229,0,0.15),transparent);
+                         animation:shimmer 4s ease-in-out infinite}
+  @keyframes shimmer{0%{left:-100%}50%{left:200%}100%{left:200%}}
+  .featured-cta:hover{transform:translate(-3px,-3px);box-shadow:9px 9px 0 rgba(255,229,0,0.4), 0 0 48px rgba(255,229,0,0.2)}
+  .featured-cta strong{font-family:Anton,sans-serif;font-size:1.4rem;letter-spacing:0.05em;
+                       color:#FFE500;display:block;margin-bottom:6px}
+  .featured-cta span{color:#aaa;font-size:0.9rem}
+
+  /* Game sections */
+  h2{font-family:Anton,sans-serif;font-size:1.8rem;letter-spacing:0.04em;color:#FFE500;
+     margin:48px 0 16px;text-shadow:0 0 14px rgba(255,229,0,0.25);
+     -webkit-text-stroke:0.5px rgba(0,0,0,0.3)}
+  h2 .num{display:inline-block;background:#FFE500;color:#000;padding:2px 11px;
+          margin-right:12px;font-size:1.1rem;border:2px solid #000;
+          box-shadow:3px 3px 0 #000;vertical-align:middle}
+
+  h3{font-family:Anton,sans-serif;font-size:1.1rem;color:#fff;letter-spacing:0.06em;
+     margin:20px 0 8px;color:#00CFFF}
+
+  p{margin-bottom:14px;color:#ccc}
+  strong{color:#fff}
+  em{color:#FFE500;font-style:normal;font-weight:700;font-family:'IBM Plex Mono',monospace}
+
+  /* Inline links */
+  a.inline{color:#FFE500;text-decoration:none;border-bottom:1px dashed rgba(255,229,0,0.5);
+           transition:all 0.15s}
+  a.inline:hover{border-bottom-style:solid;text-shadow:0 0 8px rgba(255,229,0,0.5)}
+
+  /* Game card */
+  .game-card{background:rgba(255,255,255,0.02);border-left:3px solid #00CFFF;
+             padding:16px 20px;margin:18px 0;position:relative}
+  .game-card .pros-cons{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
+  .game-card .pros, .game-card .cons{font-size:0.88rem}
+  .game-card .pros strong{color:#00FF9F;display:block;margin-bottom:4px;
+                          font-family:Anton,sans-serif;letter-spacing:0.08em;font-size:0.8rem}
+  .game-card .cons strong{color:#FF6B00;display:block;margin-bottom:4px;
+                          font-family:Anton,sans-serif;letter-spacing:0.08em;font-size:0.8rem}
+
+  /* Final CTA */
+  .final-cta{margin:60px 0 0;padding:32px 26px;text-align:center;
+             background:linear-gradient(180deg,rgba(255,229,0,0.06),rgba(255,229,0,0.02));
+             border:3px solid #FFE500;
+             box-shadow:8px 8px 0 #000, 0 0 40px rgba(255,229,0,0.2)}
+  .final-cta h3{color:#FFE500;font-size:1.6rem;margin-bottom:10px;
+                text-shadow:0 0 16px rgba(255,229,0,0.4);
+                -webkit-text-stroke:1px rgba(0,0,0,0.5)}
+  .final-cta p{color:#ddd;margin-bottom:20px}
+  .final-cta a{display:inline-block;font-family:Anton,sans-serif;
+               background:linear-gradient(180deg,#FFF459,#FFE500 50%,#E6CE00);
+               color:#000;border:3px solid #000;padding:14px 32px;text-decoration:none;
+               font-size:1.2rem;letter-spacing:0.08em;
+               box-shadow:6px 6px 0 #FF2200, 0 0 30px rgba(255,229,0,0.35);
+               transition:transform 0.1s, box-shadow 0.1s}
+  .final-cta a:hover{transform:translate(-2px,-2px);
+                     box-shadow:8px 8px 0 #FF2200, 0 0 40px rgba(255,229,0,0.5)}
+  .final-cta a:active{transform:translate(3px,3px);box-shadow:3px 3px 0 #FF2200}
+
+  /* Footer */
+  footer{margin-top:60px;padding:28px 24px;text-align:center;
+         border-top:1px solid rgba(255,229,0,0.1);color:#666;font-size:0.85rem}
+  footer a{color:#888;text-decoration:none;margin:0 12px}
+  footer a:hover{color:#FFE500}
+
+  /* Responsive */
+  @media (max-width:480px){
+    .container{padding:30px 18px 60px}
+    .game-card .pros-cons{grid-template-columns:1fr}
+    .featured-cta{padding:20px}
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-orb bg-orb-1"></div>
+<div class="bg-orb bg-orb-2"></div>
+
+<div class="top-bar">
+  <a href="/">🍺 RODADA.PT</a>
+</div>
+
+<nav style="text-align:center;padding:0 16px 8px;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;letter-spacing:0.08em;color:#888">
+  <a href="/quem-paga-rodada-portugal.html" style="color:#888;margin:0 8px;text-decoration:none">Tradição</a>·
+  <a href="/dividir-conta-restaurante.html" style="color:#888;margin:0 8px;text-decoration:none">Dividir</a>·
+  <a href="/sortear-equipas.html" style="color:#888;margin:0 8px;text-decoration:none">Equipas</a>·
+  <a href="/sobre.html" style="color:#888;margin:0 8px;text-decoration:none">Sobre</a>·
+  <a href="/contacto.html" style="color:#888;margin:0 8px;text-decoration:none">Contacto</a>
+</nav>
+
+<main class="container">
+
+  <div class="hero-label">Guia 2026 · Tradições portuguesas</div>
+  <h1>10 Jogos para Decidir <span class="accent">Quem Paga a Conta</span></h1>
+
+  <p class="intro">Quando aparece a conta no bar, alguém tem que pagar. Em vez de discutir, os portugueses usam há décadas pequenos jogos rápidos para decidir <em>de forma justa</em>. Este é o guia completo dos 10 jogos clássicos — desde o <strong>par ou ímpar</strong> ao <strong>palitinhos</strong> — com regras claras e quando cada um faz mais sentido.</p>
+
+  <a href="/" class="featured-cta">
+    <strong>🎯 Não queres jogar nada disto?</strong>
+    <span>Usa a roda do rodada.pt — mete os nomes do grupo, gira, quem sair paga. Funciona para qualquer número de pessoas, é demonstravelmente justa, e demora 5 segundos.</span>
+  </a>
+
+  <!-- ─── Game 1 ─── -->
+  <h2><span class="num">1</span>Par ou Ímpar</h2>
+  <p>O clássico português. Duas pessoas combinam quem fica com "par" e quem fica com "ímpar". À contagem de três, ambos mostram um número de dedos da mão (de 0 a 5). Soma os dois resultados — se for par ganha o "par", se for ímpar ganha o "ímpar".</p>
+  <div class="game-card">
+    <div class="pros-cons">
+      <div class="pros"><strong>VANTAGENS</strong>Rápido. Sem material. Toda a gente sabe jogar.</div>
+      <div class="cons"><strong>DESVANTAGENS</strong>Só funciona para 2 pessoas. Pode haver batota se um dos jogadores hesitar.</div>
+    </div>
+  </div>
+
+  <!-- ─── Game 2 ─── -->
+  <h2><span class="num">2</span>Cara ou Coroa</h2>
+  <p>Atira uma moeda ao ar e dá-lhe uma boa rotação. Antes de cair, um dos jogadores diz "cara" ou "coroa". Se acertar, ganha. Em Portugal o lado "cara" é o que tem a face do escudo, e "coroa" o lado do valor. É o jogo mais antigo do mundo a sério — os romanos já jogavam isto há 2000 anos com a moeda <em>navia aut caput</em>.</p>
+  <div class="game-card">
+    <div class="pros-cons">
+      <div class="pros"><strong>VANTAGENS</strong>50/50 perfeito. Universal — qualquer pessoa em qualquer país entende.</div>
+      <div class="cons"><strong>DESVANTAGENS</strong>Precisas de moeda. Só 2 pessoas. A moeda pode rolar para o chão e perder-se.</div>
+    </div>
+  </div>
+
+  <!-- ─── Game 3 ─── -->
+  <h2><span class="num">3</span>Pedra, Papel, Tesoura</h2>
+  <p>Importado mas adoptado em todo o lado. À contagem de três, cada jogador faz com a mão um destes 3 gestos: <strong>pedra</strong> (punho fechado), <strong>papel</strong> (mão aberta), ou <strong>tesoura</strong> (dois dedos como uma tesoura). A pedra esmaga a tesoura, a tesoura corta o papel, o papel embrulha a pedra.</p>
+  <div class="game-card">
+    <div class="pros-cons">
+      <div class="pros"><strong>VANTAGENS</strong>Permite empates (joga-se outra vez). Estratégia psicológica subtil. Sem material.</div>
+      <div class="cons"><strong>DESVANTAGENS</strong>Só 2 jogadores em cada ronda. Podes ter de jogar várias vezes em caso de empate.</div>
+    </div>
+  </div>
+
+  <!-- ─── Game 4 ─── -->
+  <h2><span class="num">4</span>Palitinhos (ou Porrinha)</h2>
+  <p>Cada jogador pega em 3 palitos (ou moedas, ou pedrinhas). Sem o resto do grupo ver, esconde nas mãos atrás das costas a quantidade que quiser — 0, 1, 2 ou 3. Depois, à vez, cada jogador adivinha quantos palitos há <em>no total</em> entre todas as mãos. Quem acertar o número exacto sai do jogo (não paga). Joga-se até ficar só uma pessoa — essa paga.</p>
+  <div class="game-card">
+    <div class="pros-cons">
+      <div class="pros"><strong>VANTAGENS</strong>Funciona para 3+ pessoas. Estratégia psicológica. Demora mais e cria diversão.</div>
+      <div class="cons"><strong>DESVANTAGENS</strong>Precisas de palitos. Pode demorar 5-10 minutos com grupo grande.</div>
+    </div>
+  </div>
+
+  <!-- Mid-article CTA -->
+  <a href="/" class="featured-cta">
+    <strong>⚡ Versão moderna em 5 segundos</strong>
+    <span>Em vez de procurar palitos no bar, abre o rodada.pt no telemóvel. Mete os nomes do grupo, gira a roda. Funciona até com 30 pessoas.</span>
+  </a>
+
+  <!-- ─── Game 5 ─── -->
+  <h2><span class="num">5</span>Zero ou Um (Dois ou Um)</h2>
+  <p>Variação mais simples do par ou ímpar. À contagem, cada jogador mostra <strong>0 ou 1 dedo</strong>. Se a soma for igual, ganha um lado; se for diferente, ganha o outro. Combina-se antes quem é "igual" e quem é "diferente". Mais rápido que par ou ímpar — mas com menos margem para estratégia.</p>
+  <div class="game-card">
+    <div class="pros-cons">
+      <div class="pros"><strong>VANTAGENS</strong>Mais rápido que par ou ímpar. Mais fácil de explicar a crianças.</div>
+      <div class="cons"><strong>DESVANTAGENS</strong>Pouca estratégia. Só 2 jogadores.</div>
+    </div>
+  </div>
+
+  <!-- ─── Game 6 ─── -->
+  <h2><span class="num">6</span>Roda de Garrafa</h2>
+  <p>Põe uma garrafa (de cerveja, vinho, água — qualquer) deitada no centro da mesa. Roda-a com força. Quando parar, a garrafa está a apontar para alguém — essa pessoa paga. Funciona melhor com 4+ pessoas sentadas à volta de uma mesa redonda. <em>Variante:</em> alguns grupos repetem 2 vezes para ter a certeza.</p>
+  <div class="game-card">
+    <div class="pros-cons">
+      <div class="pros"><strong>VANTAGENS</strong>Funciona para 3-10 pessoas. Visual e divertido. Não precisa de regras complicadas.</div>
+      <div class="cons"><strong>DESVANTAGENS</strong>Precisas de mesa redonda. Pode não ser tão "justo" se a garrafa rolar irregular. A garrafa pode cair.</div>
+    </div>
+  </div>
+
+  <!-- ─── Game 7 ─── -->
+  <h2><span class="num">7</span>Escolher Carta Mais Alta</h2>
+  <p>Com um baralho de cartas: cada jogador tira uma carta às cegas. Quem tirar a carta mais baixa, paga. Em caso de empate, repete-se. Ás conta como 1 (ou 14, conforme acordado antes). Funciona para 2 a 8 pessoas.</p>
+  <div class="game-card">
+    <div class="pros-cons">
+      <div class="pros"><strong>VANTAGENS</strong>100% aleatório, justo. Funciona com qualquer número de pessoas. Visualmente claro.</div>
+      <div class="cons"><strong>DESVANTAGENS</strong>Precisas de baralho de cartas (raro no bar). Pode haver vários empates.</div>
+    </div>
+  </div>
+
+  <!-- ─── Game 8 ─── -->
+  <h2><span class="num">8</span>Quem Adivinha o Número</h2>
+  <p>Uma pessoa pensa num número entre 1 e 100 (ou 1 e 10, para ser mais rápido). Os outros tentam adivinhar à vez, e a pessoa que escolheu o número diz só "mais alto" ou "mais baixo". Quem ficar mais perto sem acertar — ou quem acertar — ganha. Quem ficar mais longe, paga.</p>
+  <div class="game-card">
+    <div class="pros-cons">
+      <div class="pros"><strong>VANTAGENS</strong>Funciona para qualquer número de pessoas. Sem material. Combina sorte com lógica.</div>
+      <div class="cons"><strong>DESVANTAGENS</strong>Demora mais. Precisas de uma pessoa "neutra" para escolher o número.</div>
+    </div>
+  </div>
+
+  <!-- ─── Game 9 ─── -->
+  <h2><span class="num">9</span>O Mais Novo Paga (ou o Mais Velho)</h2>
+  <p>Sem jogo, sem aleatoriedade — regra fixa do grupo. Em algumas tradições portuguesas (especialmente no Norte e em famílias), o membro mais novo paga sempre a primeira rodada como "rite of passage". Noutras versões, é o mais velho que paga como gesto de hospitalidade. Aplica-se também a aniversariantes que pagam pela própria celebração.</p>
+  <div class="game-card">
+    <div class="pros-cons">
+      <div class="pros"><strong>VANTAGENS</strong>Sem discussão. Tradição clara. Acelera a noite.</div>
+      <div class="cons"><strong>DESVANTAGENS</strong>Pode parecer injusto se for sempre a mesma pessoa. Não é aleatório.</div>
+    </div>
+  </div>
+
+  <!-- ─── Game 10 ─── -->
+  <h2><span class="num">10</span>Roda Digital (rodada.pt)</h2>
+  <p>A versão moderna que junta o melhor de todos os jogos acima: <strong>funciona para qualquer número de pessoas</strong> (até 30), demora 5 segundos, não precisa de material físico, e é <em>demonstravelmente justa</em> com chi-square (qualquer pessoa pode testar a distribuição no próprio site). Cada amigo fica com uma cor única, a roda gira, e há um modal a destacar quem paga.</p>
+  <div class="game-card">
+    <div class="pros-cons">
+      <div class="pros"><strong>VANTAGENS</strong>Funciona para 2-30 pessoas. Rápido. Sem material. Demonstravelmente justo. Modo "cartões de crédito" para jantares mais elaborados.</div>
+      <div class="cons"><strong>DESVANTAGENS</strong>Precisas de smartphone ou tablet (mas toda a gente tem).</div>
+    </div>
+  </div>
+
+  <!-- ─── Como escolher ─── -->
+  <h2 style="margin-top:60px">Qual destes deves escolher?</h2>
+  <p><strong>Para 2 pessoas:</strong> par ou ímpar continua a ser o standard. Cara ou coroa se tens moeda à mão. Pedra-papel-tesoura se quiseres permitir estratégia.</p>
+  <p><strong>Para 3-5 pessoas:</strong> palitinhos é a opção tradicional, mas demora. Cartas (mais alta vs mais baixa) é mais rápido se tiveres baralho.</p>
+  <p><strong>Para 6+ pessoas:</strong> nenhum dos jogos tradicionais escala bem. Roda de garrafa funciona mas é menos justa. <a class="inline" href="/">A roda do rodada.pt</a> resolve isso — foi desenhada exactamente para grupos grandes onde os outros métodos falham.</p>
+  <p><strong>Para jantares formais (negócios, primeiro encontro):</strong> o modo "cartões de crédito" do rodada.pt é mais elegante que ter de fazer par ou ímpar no restaurante.</p>
+
+  <!-- ─── FAQ ─── -->
+  <h2 style="margin-top:60px">Perguntas Frequentes</h2>
+
+  <h3>Estes jogos são realmente justos?</h3>
+  <p>Sim, todos têm uma probabilidade de 50/50 (para 2 pessoas) ou 1/n (para grupos). A excepção é a roda de garrafa, que pode ter ligeira tendência consoante o peso e o atrito da mesa. <a class="inline" href="/">O rodada.pt</a> tem um teste estatístico chi-square integrado para provar que é justa.</p>
+
+  <h3>Vale a pena registar quem pagou no histórico?</h3>
+  <p>Sim, especialmente em grupos que saem muito. Algumas pessoas têm sempre azar e outras têm sempre sorte — sem histórico, ninguém sabe e a noite acaba com alguém a sentir-se prejudicado. O rodada.pt tem o "Patrocinadores da Noite" exactamente para isto: regista quem pagou e quantas vezes.</p>
+
+  <h3>O que acontece se ninguém quiser pagar?</h3>
+  <p>Existe sempre a opção tradicional: divide a conta pelo número de pessoas. Funciona para jantares mais formais ou quando o valor é alto. Mas para uma rodada de 4-5 cervejas (€8-15), é mais divertido e rápido sortear.</p>
+
+  <h3>Posso usar estes jogos para outras coisas além de pagar?</h3>
+  <p>Claro. Os mesmos jogos servem para: <strong>quem começa</strong> num jogo de tabuleiro, <strong>quem vai à WC primeiro</strong> num grupo, <strong>quem fica com o lugar bom no carro</strong>, <strong>quem faz o café</strong> no escritório, <strong>quem leva o lixo</strong> em casa. A roda do rodada.pt funciona igualmente bem para qualquer destes contextos.</p>
+
+  <!-- ─── Final CTA ─── -->
+  <div class="final-cta">
+    <h3>Próxima rodada? Não discutas. Roda.</h3>
+    <p>Funciona em qualquer telemóvel. Não precisa de instalar nada.<br>Mete os nomes, gira, quem sair paga.</p>
+    <a href="/">🍺 ABRIR RODADA.PT →</a>
+  </div>
+
+</main>
+
+<footer>
+  <a href="/">← Voltar à Rodada</a>
+  <a href="/privacidade.html">Privacidade</a>
+  <a href="/termos.html">Termos</a>
+  <div style="margin-top:14px;color:#555">Feito com 🍺 em Portugal</div>
+</footer>
+
+</body>
+</html>

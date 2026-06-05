@@ -1705,10 +1705,12 @@ export default function App() {
     .ftr{text-align:center;padding:24px 18px 28px;font-size:0.7rem;color:#3a3a3a;
       letter-spacing:0.14em;font-family:'IBM Plex Mono',monospace;font-weight:500;
       border-top:1px solid rgba(255,229,0,0.08)}
-    .ftr-link{display:inline-block;color:#888;text-decoration:none;padding:6px 14px;
-      margin-bottom:10px;font-size:0.72rem;letter-spacing:0.1em;
-      border:1px solid rgba(255,229,0,0.2);transition:all 0.18s;
-      background:rgba(255,229,0,0.02)}
+    .ftr-nav{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:14px;
+      max-width:640px;margin-left:auto;margin-right:auto}
+    .ftr-link{display:inline-block;color:#888;text-decoration:none;padding:6px 12px;
+      font-size:0.7rem;letter-spacing:0.08em;
+      border:1px solid rgba(255,229,0,0.18);transition:all 0.18s;
+      background:rgba(255,229,0,0.02);text-transform:uppercase;font-weight:600}
     .ftr-link:hover{color:#FFE500;border-color:#FFE500;background:rgba(255,229,0,0.06);
       box-shadow:0 0 14px rgba(255,229,0,0.15)}
     .ftr-credit{color:#3a3a3a;margin-top:4px}
@@ -2261,7 +2263,16 @@ export default function App() {
 
         <div className="stripe"/>
         <div className="ftr">
-          <a href="/jogos-para-decidir.html" className="ftr-link">📖 {t.guideLink}</a>
+          <div className="ftr-nav">
+            <a href="/quem-paga-rodada-portugal.html" className="ftr-link">A tradição da rodada</a>
+            <a href="/dividir-conta-restaurante.html" className="ftr-link">Dividir a conta</a>
+            <a href="/sortear-equipas.html" className="ftr-link">Sortear equipas</a>
+            <a href="/jogos-para-decidir.html" className="ftr-link">10 jogos</a>
+            <a href="/sobre.html" className="ftr-link">Sobre</a>
+            <a href="/contacto.html" className="ftr-link">Contacto</a>
+            <a href="/privacidade.html" className="ftr-link">Privacidade</a>
+            <a href="/termos.html" className="ftr-link">Termos</a>
+          </div>
           <div className="ftr-credit">{t.footer}  ·  RODADA.PT</div>
         </div>
       </div>
